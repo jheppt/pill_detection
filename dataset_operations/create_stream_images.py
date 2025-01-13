@@ -54,12 +54,11 @@ class CreateStreamImages:
         )
 
     # ------------------------------------------------------------------------------------------------------------------
-    # ---------------------------------------- D R A W   B O U N D I N G   B O X ---------------------------------------
+    # ---------------------------------------- U S E  M A S K  & C R O P  I M A G E-------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
-    def draw_bounding_box(self, in_img: np.ndarray, seg_map: np.ndarray, output_path: str) -> None:
+    def apply_mask_and_crop_image(self, in_img: np.ndarray, seg_map: np.ndarray, output_path: str) -> None:
         """
-        Draws bounding box over medicines. It draws only the biggest bounding box, small ones are terminated.
-        After that it crops out the bounding box's content.
+        Applies the Maks to cut out the background and crop the image to the object.
 
         Args:
             in_img: input testing image
@@ -69,33 +68,28 @@ class CreateStreamImages:
         Returns:
             None
         """
+        # Ensure the segmentation map is binary
+        seg_map_binary = (seg_map > 0.5).astype(np.uint8)  # Assuming seg_map is a probability map
 
-        n_objects, _, stats, _ = cv2.connectedComponentsWithStats(seg_map, connectivity=8, ltype=cv2.CV_32S)
+        # Apply the mask to the input image
+        masked_img = cv2.bitwise_and(in_img, in_img, mask=seg_map_binary)
 
-        max_area = 0
-        max_x, max_y, max_w, max_h = None, None, None, None
+        # Find contours to get bounding box around the object
+        contours, _ = cv2.findContours(seg_map_binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            raise ValueError("No object found in the segmentation map.")
 
-        for i in range(1, n_objects):
-            x, y, w, h, area = stats[i]
-            if area > self.cfg.get("threshold_area") and area > max_area:
-                max_x, max_y, max_w, max_h = x, y, w, h
-                max_area = area
+        # Get the bounding box for the largest contour
+        largest_contour = max(contours, key=cv2.contourArea)
+        x, y, w, h = cv2.boundingRect(largest_contour)
 
-        if max_area > 0:
-            center_x = max_x + max_w / 2
-            center_y = max_y + max_h / 2
-            side_length = max(max_w, max_h)
+        # Crop the image to the bounding box
+        cropped_img = masked_img[y:y + h, x:x + w]
 
-            # Calculate square coordinates ensuring it fits within image boundaries
-            square_x = max(0, int(center_x - side_length / 2))
-            square_y = max(0, int(center_y - side_length / 2))
-            square_x_end = min(in_img.shape[1], square_x + side_length)
-            square_y_end = min(in_img.shape[0], square_y + side_length)
+        # Save the cropped image
+        cv2.imwrite(output_path, cropped_img)
 
-            obj = in_img[square_y:square_y_end, square_x:square_x_end]
 
-            if obj.size != 0:
-                cv2.imwrite(output_path, obj)
 
     # ------------------------------------------------------------------------------------------------------------------
     # -------------------------------------------- P R O C E S S   I M A G E -------------------------------------------
@@ -113,7 +107,7 @@ class CreateStreamImages:
         output_file = (os.path.join(self.rgb_images_path, output_name))
         color_images = cv2.imread(str(color_path), 1)
         mask_images = cv2.imread(str(mask_path), 0)
-        self.draw_bounding_box(color_images, mask_images, output_file)
+        self.apply_mask_and_crop_image(color_images, mask_images, output_file)
 
     # ------------------------------------------------------------------------------------------------------------------
     # ----------------------------------- S A V E   B O U N D I N G   B O X   I M G S ----------------------------------
@@ -140,7 +134,7 @@ class CreateStreamImages:
         mask_images_dir = dips(self.dataset_type).get(self.operation).get(masks)
 
         color_images = file_reader(color_images_dir, "jpg")
-        mask_images = file_reader(mask_images_dir, "jpg")
+        mask_images = file_reader(mask_images_dir, "png")
 
         with ThreadPoolExecutor(max_workers=self.max_worker) as executor:
             list(tqdm(executor.map(self.process_image, zip(color_images, mask_images)), total=len(color_images),
@@ -305,25 +299,35 @@ class CreateStreamImages:
         Returns: None
         """
 
-        files_rgb = os.listdir(rgb_path)
-        files_contour = os.listdir(contour_path)
-        files_texture = os.listdir(texture_path)
-        files_lbp = os.listdir(lbp_path)
+        files_rgb = sorted(os.listdir(rgb_path))
+        files_contour = sorted(os.listdir(contour_path))
+        files_texture = sorted(os.listdir(texture_path))
+        files_lbp = sorted(os.listdir(lbp_path))
 
         for idx, (file_rgb, file_contour, file_texture, file_lbp) in \
                 tqdm(enumerate(zip(files_rgb, files_contour, files_texture, files_lbp)), desc="Copying image files"):
 
-            if "_s_" in file_rgb:
-                match = re.search(r'^(.*?)_s_\d{3}\.jpg$', file_rgb)
-            elif "_u_" in file_rgb:
-                match = re.search(r'^(.*?)_u_\d{3}\.jpg$', file_rgb)
-            else:
-                match = None
+            # dataset_type ogyeiv2 or synthetic
+            if self.dataset_type == "ogyeiv2":
+                if "_s_" in file_rgb:
+                    match = re.search(r'^(.*?)_s_\d{3}\.jpg$', file_rgb)
+                elif "_u_" in file_rgb:
+                    match = re.search(r'^(.*?)_u_\d{3}\.jpg$', file_rgb)
+                else:
+                    match = None
 
-            if match:
-                value = match.group(1)
+                if match:
+                    value = match.group(1)
+                else:
+                    raise ValueError(f"Wrong file name: {file_rgb}")
+            elif self.dataset_type == "synthetic":
+                match = re.search(r'[c|r]_(.*?)_(\d+)\.', file_rgb)
+                if match:
+                    value = match.group(1)
+                else:
+                    raise ValueError(f"Wrong file name: {file_rgb}")
             else:
-                raise ValueError(f"Wrong file name: {file_rgb}")
+                raise ValueError(f"Wrong dataset type: {self.dataset_type}")
 
             out_path_rgb = os.path.join(rgb_path, value)
             out_path_contour = os.path.join(contour_path, value)

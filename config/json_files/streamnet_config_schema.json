@@ -5,7 +5,10 @@
   "properties": {
     "dataset_type": {
       "type": "string",
-      "enum": ["ogyeiv2"]
+      "enum": ["ogyeiv2","synthetic"]
+    },
+    "run_postfix": {
+      "type": "string"
     },
     "type_of_net": {
       "type": "string",

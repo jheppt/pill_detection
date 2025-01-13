@@ -3,7 +3,7 @@ import os
 import shutil
 import random
 
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from config.dataset_paths_selector import dataset_images_path_selector
 from config.json_config import json_config_selector
@@ -11,7 +11,7 @@ from utils.utils import create_timestamp, find_latest_file_in_directory, load_co
 
 
 class KFoldSort:
-    def __init__(self, load_folds, erase):
+    def __init__(self, load_folds, erase,num_folds: int = 5):
         self.stream_cfg = (
             load_config_json(
                 json_schema_filename=json_config_selector("stream_net").get("schema"),
@@ -22,6 +22,7 @@ class KFoldSort:
         self.load_folds = load_folds
         self.fold_name = self.stream_cfg.get("fold")
         self.erase = erase
+        self.num_folds = num_folds
 
         logging.info(f"{self.fold_name} selected")
 
@@ -137,13 +138,17 @@ class KFoldSort:
 
         for source_dir, dst_dir in tqdm(zip(src_subdirectories, dst_subdirectories),
                                         total=len(src_subdirectories),
-                                        desc="Stream directories"):
+                                        desc="Stream directories",
+                                        position=0,
+                                        leave=True):
             source_dir = os.path.join(source_root, source_dir)
             dst_dir = os.path.join(destination_root, dst_dir)
 
             for folder in tqdm(classes_data_role,
                                total=len(classes_data_role),
-                               desc="Pill folders"):
+                               desc="Pill folders",
+                                        position=0,
+                                        leave=True):
                 source_path = os.path.join(str(source_dir), folder)
                 dst_path = os.path.join(str(dst_dir), folder.lower())
 
@@ -186,7 +191,7 @@ class KFoldSort:
         if self.load_folds:
             sorted_folds = self.folds(load=True)
         else:
-            sorted_folds = self.folds(load=False, num_folds=5)
+            sorted_folds = self.folds(load=False, num_folds=self.num_folds)
 
         self.move_images_to_folds(sorted_folds, self.fold_name, operation="reference", data_role="train")
         self.move_images_to_folds(sorted_folds, self.fold_name, operation="reference", data_role="test")
@@ -198,7 +203,8 @@ if __name__ == "__main__":
     k_fold_sort = (
         KFoldSort(
             load_folds=True,
-            erase=True
+            erase=True,
+            num_folds=5,
         )
     )
 

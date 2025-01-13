@@ -168,6 +168,7 @@ def save_masks(mask: np.ndarray, img_file: str, path_to_files: Dict[str, str]) -
 
     name = os.path.basename(img_file)
     save_path = (os.path.join(path_to_files.get("masks"), name))
+    save_path = save_path.replace(".jpg", ".png")
     mask_pil = mask.astype(np.uint8) * 255
     cv2.imwrite(save_path, mask_pil)
 

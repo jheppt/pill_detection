@@ -22,11 +22,14 @@ import torch
 
 from datetime import datetime
 from functools import wraps
+
+import wandb
 from jsonschema import validate
 from glob import glob
 from pathlib import Path
 from PIL import Image
 from sklearn.metrics import confusion_matrix
+from torch import Tensor
 from torch.utils.data import DataLoader, random_split
 from typing import Any, Callable, List, Optional, Tuple, Union
 from tqdm import tqdm
@@ -54,8 +57,8 @@ def create_dataset(dataset, train_valid_ratio: float, batch_size: int) -> Tuple[
     train_dataset, valid_dataset = random_split(dataset, [train_size, val_size])
     logging.info(f"Number of images in the train set: {len(train_dataset)}")
     logging.info(f"Number of images in the validation set: {len(valid_dataset)}")
-    train_data_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    valid_data_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=True)
+    train_data_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
+    valid_data_loader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
 
     return train_data_loader, valid_data_loader
 
@@ -353,20 +356,27 @@ def plot_confusion_matrix(gt: List[str], predictions: List[str], out_path: str) 
 # ----------------------------------------------------------------------------------------------------------------------
 # ---------------------------------------- P L O T   R E F   Q U E R Y   I M G S ---------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
-def plot_ref_query_images(gt_labels: List[str], predicted_medicines: List[str],
-                          query_image_paths: dict, reference_image_paths: dict,
-                          output_folder: str) -> None:
+def plot_ref_query_images(query_lables: List[str], predicted_medicines: List[str],
+                          query_image_tensors: dict, reference_image_tensors: dict,
+                          output_folder: str,
+                          max_correct:int =5,
+                          max_incorrect:int=5,
+                          save_images:bool = True) -> None:
     """
+    Plot and save correctly and incorrectly classified images, and upload incorrect classifications to WandB as a table.
 
     Args:
-        gt_labels:
-        predicted_medicines:
-        query_image_paths:
-        reference_image_paths:
-        output_folder:
+        query_lables: List of ground truth labels.
+        predicted_medicines: List of predicted medicine labels.
+        query_image_tensors: Dictionary mapping predicted labels to query image tensors.
+        reference_image_tensors: Dictionary mapping ground truth labels to reference image tensors.
+        output_folder: Folder to save the plotted images.
+        max_correct: Maximum number of correctly classified images to plot.
+        max_incorrect: Maximum number of incorrectly classified images to plot.
+        save_images: Whether to save the images or not.
 
     Returns:
-
+        None
     """
 
     correctly_classified = os.path.join(output_folder, "correctly_classified")
@@ -374,43 +384,70 @@ def plot_ref_query_images(gt_labels: List[str], predicted_medicines: List[str],
     os.makedirs(correctly_classified, exist_ok=True)
     os.makedirs(incorrectly_classified, exist_ok=True)
 
+    # Initialize WandB table for incorrect classifications
+    wandb_table = wandb.Table(columns=[ "Query Image","Prediction Image", "Ref top Image", "Ref bottom Image","query GT label", "Prediction label"])
+
     # Loop through ground truth and predicted labels
-    for i, (gt_label, predicted_medicine) in tqdm(enumerate(zip(gt_labels, predicted_medicines)),
-                                                  total=len(gt_labels),
+
+    correct_count = 0
+    incorrect_count = 0
+    old_query_label = None
+
+    for i, (query_label, predicted_medicine) in tqdm(enumerate(zip(query_lables, predicted_medicines)),
+                                                  total=len(query_lables),
                                                   desc="Plotting images"):
-
-        query_images = query_image_paths[predicted_medicine]
-
-        if gt_label == predicted_medicine:
-            save_folder = correctly_classified
-            ref_label = gt_label
+        if(old_query_label != query_label):
+            query_image_count = 0
         else:
+            query_image_count += 1
+
+        if correct_count >= max_correct and incorrect_count >= max_incorrect:
+            break
+
+
+
+        if query_label == predicted_medicine:
+            if correct_count >= max_correct:
+                continue
+            save_folder = correctly_classified
+            correct_count += 1
+        else:
+            if incorrect_count >= max_incorrect:
+                continue
             save_folder = incorrectly_classified
-            ref_label = gt_label
+            incorrect_count += 1
 
-        reference_images = [Image.open(path) for path in reference_image_paths[ref_label]]
+            # Collect incorrect classifications for WandB
+            ref_tensors = reference_image_tensors[query_label]
+            ref_images = [wandb.Image(tensor, caption=f"Ref: {query_label}") for tensor in ref_tensors]
+            query_image = wandb.Image(query_image_tensors[query_label][query_image_count], caption=f"Query: {query_label}")
+            predicted_medicine_image = wandb.Image(reference_image_tensors[predicted_medicine][0], caption=f"Predicted: {predicted_medicine}")
 
-        query_image = Image.open(
-            query_images[i % len(query_images)])
+            wandb_table.add_data(query_image, predicted_medicine_image,ref_images[0], ref_images[1],query_label, predicted_medicine, )
 
-        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+        # if save_images:
+        #     reference_images = [Image.open(path) for path in reference_image_paths[gt_label]]
+        #     query_image = Image.open(query_images[i % len(query_images)])
+        #
+        #     fig, axes = plt.subplots(1, len(reference_images) + 1, figsize=(15, 5))
+        #
+        #     for j, ref_img in enumerate(reference_images):
+        #         axes[j].imshow(ref_img)
+        #         axes[j].axis('off')
+        #         axes[j].set_title(f'Ref {j + 1} ({gt_label})')
+        #
+        #     axes[len(reference_images)].imshow(query_image)
+        #     axes[len(reference_images)].axis('off')
+        #     axes[len(reference_images)].set_title(f'Query ({predicted_medicine})')
+        #
+        #     plt.subplots_adjust(top=0.85, bottom=0.05, hspace=0.2, wspace=0.3)
+        #
+        #     plot_filename = os.path.join(save_folder, f'{gt_label}_vs_{predicted_medicine}_query_{i}.png')
+        #     plt.savefig(plot_filename, dpi=100)
+        #     plt.close()
 
-        for j, ref_img in enumerate(reference_images):
-            axes[j].imshow(ref_img)
-            axes[j].axis('off')
-            axes[j].set_title(f'Reference Image {j + 1} ({ref_label})')
-
-        axes[2].imshow(query_image)
-        axes[2].axis('off')
-        axes[2].set_title(f'Query Image ({predicted_medicine})')
-
-        plt.subplots_adjust(top=0.85, bottom=0.05, hspace=0.2, wspace=0.3)
-
-        plot_filename = os.path.join(save_folder, f'{gt_label}_vs_{predicted_medicine}_query_{i}.png')
-        plt.savefig(plot_filename, dpi=100)
-        plt.close()
-
-    gc.collect()
+    # Log the incorrect classification table to WandB
+    wandb.log({"Incorrect Classifications": wandb_table})
 
 
 # ----------------------------------------------------------------------------------------------------------------------

@@ -24,13 +24,13 @@ class _Const(object):
     # Select user and according paths
     user = os.getlogin()
     root_mapping = {
-        "ricsi": {
+        "ubuntu": {
             "STORAGE_ROOT":
-                "D:/storage/pill_detection/VISAPP2024",
+                "/home/ubuntu/dev/pill_detection/storage",
             "DATASET_ROOT":
-                "D:/storage/pill_detection/VISAPP2024/datasets",
+                "/home/ubuntu/dev/pill_detection/datasets",
             "PROJECT_ROOT":
-                "C:/Users/ricsi/Documents/project/IVM",
+                "/home/ubuntu/dev/pill_detection",
         }
     }
 
@@ -74,6 +74,7 @@ class _Const(object):
 
 
 class ConfigFilePaths(_Const):
+ 
     dirs_config_paths = {
         "config_augmentation":
             "config/json_files/augmentation_config.json",
@@ -113,69 +114,70 @@ class ConfigFilePaths(_Const):
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++ I M A G E S +++++++++++++++++++++++++++++++++++++++++++++++++++++
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 class Images(_Const):
-    dirs_images = {
-        # +++++++++++++++++++++++++++++++++++++++++++++++++++ O G Y E I ++++++++++++++++++++++++++++++++++++++++++++++++
-        "stream_images_ogyei_v2_anchor":
-            "images/ogyei_v2/stream_images/anchor",
-        "stream_images_ogyei_v2_pos_neg":
-            "images/ogyei_v2/stream_images/pos_neg",
-
+    dirs_images = {}
+    for dataset in ["ogyeiv2", "synthetic", "nih"]:
+        dirs_images.update({
+        f"stream_images_{dataset}_anchor":
+        f"images/{dataset}/stream_images/anchor",
+        f"stream_images_{dataset}_pos_neg":
+        f"images/{dataset}/stream_images/pos_neg",
         # ------------------------------------------------- A N C H O R ------------------------------------------------
-        "contour_stream_ogyei_v2_anchor":
-            "images/ogyei_v2/stream_images/anchor/contour",
-        "lbp_stream_ogyei_v2_anchor":
-            "images/ogyei_v2/stream_images/anchor/lbp",
-        "rgb_stream_ogyei_v2_anchor":
-            "images/ogyei_v2/stream_images/anchor/rgb",
-        "texture_stream_ogyei_v2_anchor":
-            "images/ogyei_v2/stream_images/anchor/texture",
+        f"contour_stream_{dataset}_anchor":
+        f"images/{dataset}/stream_images/anchor/contour",
+        f"lbp_stream_{dataset}_anchor":
+        f"images/{dataset}/stream_images/anchor/lbp",
+        f"rgb_stream_{dataset}_anchor":
+        f"images/{dataset}/stream_images/anchor/rgb",
+        f"texture_stream_{dataset}_anchor":
+        f"images/{dataset}/stream_images/anchor/texture",
 
         # ----------------------------------------------- P O S   N E G ------------------------------------------------
-        "contour_stream_ogyei_v2_pos_neg":
-            "images/ogyei_v2/stream_images/pos_neg/contour",
-        "lbp_stream_ogyei_v2_pos_neg":
-            "images/ogyei_v2/stream_images/pos_neg/lbp",
-        "rgb_stream_ogyei_v2_pos_neg":
-            "images/ogyei_v2/stream_images/pos_neg/rgb",
-        "texture_stream_ogyei_v2_pos_neg":
-            "images/ogyei_v2/stream_images/pos_neg/texture",
+        f"contour_stream_{dataset}_pos_neg":
+            f"images/{dataset}/stream_images/pos_neg/contour",
+        f"lbp_stream_{dataset}_pos_neg":
+            f"images/{dataset}/stream_images/pos_neg/lbp",
+        f"rgb_stream_{dataset}_pos_neg":
+            f"images/{dataset}/stream_images/pos_neg/rgb",
+        f"texture_stream_{dataset}_pos_neg":
+            f"images/{dataset}/stream_images/pos_neg/texture",
 
         # -------------------------------------------------- Q U E R Y -------------------------------------------------
-        "query_ogyei_v2":
-            "images/ogyei_v2/test/query",
-        "contour_stream_query_ogyei_v2":
-            "images/ogyei_v2/test/query/contour",
-        "lbp_stream_query_ogyei_v2":
-            "images/ogyei_v2/test/query/lbp",
-        "rgb_stream_query_ogyei_v2":
-            "images/ogyei_v2/test/query/rgb",
-        "texture_stream_query_ogyei_v2":
-            "images/ogyei_v2/test/query/texture",
+        f"{dataset}_query":
+            f"images/{dataset}/test/query",
+        f"contour_stream_{dataset}_query":
+            f"images/{dataset}/test/query/contour",
+        f"lbp_stream_{dataset}_query":
+            f"images/{dataset}/test/query/lbp",
+        f"rgb_stream_{dataset}_query":
+            f"images/{dataset}/test/query/rgb",
+        f"texture_stream_{dataset}_query":
+            f"images/{dataset}/test/query/texture",
 
         # ---------------------------------------------------- R E F ---------------------------------------------------
-        "ref_ogyei_v2":
-            "images/ogyei_v2/test/ref",
-        "contour_stream_ref_ogyei_v2":
-            "images/ogyei_v2/test/ref/contour",
-        "lbp_stream_ref_ogyei_v2":
-            "images/ogyei_v2/test/ref/lbp",
-        "rgb_stream_ref_ogyei_v2":
-            "images/ogyei_v2/test/ref/rgb",
-        "texture_stream_ref_ogyei_v2":
-            "images/ogyei_v2/test/ref/texture",
+        f"ref_{dataset}":
+            f"images/{dataset}/test/ref",
+        f"contour_stream_{dataset}_ref":
+            f"images/{dataset}/test/ref/contour",
+        f"lbp_stream_{dataset}_ref":
+            f"images/{dataset}/test/ref/lbp",
+        f"rgb_stream_{dataset}_ref":
+            f"images/{dataset}/test/ref/rgb",
+        f"texture_stream_{dataset}_ref":
+            f"images/{dataset}/test/ref/texture",
 
         # ------------------------------------ P L O T T I N G   S T R E A M   N E T -----------------------------------
-        "plotting_efficient_net_v2_ogyei_v2_hmtl":
-            "images/ogyei_v2/plotting/stream_net/efficient_net_v2/hmtl",
-        "plotting_efficient_net_v2_ogyei_v2_dmtl":
-            "images/ogyei_v2/plotting/stream_net/efficient_net_v2/dmtl",
+        f"plotting_efficient_net_v2_{dataset}_hmtl":
+            f"images/{dataset}/plotting/stream_net/efficient_net_v2/hmtl",
+        f"plotting_efficient_net_v2_{dataset}_dmtl":
+            f"images/{dataset}/plotting/stream_net/efficient_net_v2/dmtl",
 
         # ------------------------------------ P L O T T I N G   F U S I O N   N E T -----------------------------------
-        "plotting_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_hmtl":
-            "images/ogyei_v2/plotting/fusion_net/fusion_network_efficient_net_v2_multihead_attention/hmtl",
-        "plotting_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_dmtl":
-            "images/ogyei_v2/plotting/fusion_net/fusion_network_efficient_net_v2_multihead_attention/dmtl"
-    }
+        f"plotting_fusion_network_efficient_net_v2_multihead_attention_{dataset}_hmtl":
+            f"images/{dataset}/plotting/fusion_net/fusion_network_efficient_net_v2_multihead_attention/hmtl",
+        f"plotting_fusion_network_efficient_net_v2_multihead_attention_{dataset}_dmtl":
+            f"images/{dataset}/plotting/fusion_net/fusion_network_efficient_net_v2_multihead_attention/dmtl",
+        })
+    
 
     # ------------------------------------------------------------------------------------------------------------------
     # ---------------------------------------------------- I N I T -----------------------------------------------------
@@ -195,108 +197,111 @@ class Images(_Const):
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++ D A T A +++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 class Data(_Const):
-    dirs_data = {
-        # ++++++++++++++++++++++++++++++++++++++++++++++++++ O G Y E I +++++++++++++++++++++++++++++++++++++++++++++++++
+    dirs_data = {}
+    for dataset in ["ogyeiv2", "synthetic", "nih"]:
+        dirs_data.update({
         # ------------------------------------- W E I G H T S   S T R E A M   N E T ------------------------------------
         # EfficientNetV2 - StreamNetwork
-        "weights_efficient_net_v2_contour_ogyei_v2_hmtl":
-            "data/ogyei_v2/weights/stream_net/efficient_net_v2/contour/hmtl",
-        "weights_efficient_net_v2_lbp_ogyei_v2_hmtl":
-            "data/ogyei_v2/weights/stream_net/efficient_net_v2/lbp/hmtl",
-        "weights_efficient_net_v2_rgb_ogyei_v2_hmtl":
-            "data/ogyei_v2/weights/stream_net/efficient_net_v2/rgb/hmtl",
-        "weights_efficient_net_v2_texture_ogyei_v2_hmtl":
-            "data/ogyei_v2/weights/stream_net/efficient_net_v2/texture/hmtl",
+        f"weights_efficient_net_v2_contour_{dataset}_hmtl":
+            f"data/{dataset}/weights/stream_net/efficient_net_v2/contour/hmtl",
+        f"weights_efficient_net_v2_lbp_{dataset}_hmtl":
+            f"data/{dataset}/weights/stream_net/efficient_net_v2/lbp/hmtl",
+        f"weights_efficient_net_v2_rgb_{dataset}_hmtl":
+            f"data/{dataset}/weights/stream_net/efficient_net_v2/rgb/hmtl",
+        f"weights_efficient_net_v2_texture_{dataset}_hmtl":
+            f"data/{dataset}/weights/stream_net/efficient_net_v2/texture/hmtl",
 
-        "weights_efficient_net_v2_contour_ogyei_v2_dmtl":
-            "data/ogyei_v2/weights/stream_net/efficient_net_v2/contour/dmtl",
-        "weights_efficient_net_v2_lbp_ogyei_v2_dmtl":
-            "data/ogyei_v2/weights/stream_net/efficient_net_v2/lbp/dmtl",
-        "weights_efficient_net_v2_rgb_ogyei_v2_dmtl":
-            "data/ogyei_v2/weights/stream_net/efficient_net_v2/rgb/dmtl",
-        "weights_efficient_net_v2_texture_ogyei_v2_dmtl":
-            "data/ogyei_v2/weights/stream_net/efficient_net_v2/texture/dmtl",
+        f"weights_efficient_net_v2_contour_{dataset}_dmtl":
+            f"data/{dataset}/weights/stream_net/efficient_net_v2/contour/dmtl",
+        f"weights_efficient_net_v2_lbp_{dataset}_dmtl":
+            f"data/{dataset}/weights/stream_net/efficient_net_v2/lbp/dmtl",
+        f"weights_efficient_net_v2_rgb_{dataset}_dmtl":
+            f"data/{dataset}/weights/stream_net/efficient_net_v2/rgb/dmtl",
+        f"weights_efficient_net_v2_texture_{dataset}_dmtl":
+            f"data/{dataset}/weights/stream_net/efficient_net_v2/texture/dmtl",
 
         # ------------------------------------- W E I G H T S   F U S I O N   N E T ------------------------------------
-        "weights_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_hmtl":
-            "data/ogyei_v2/weights/fusion_net/efficient_net_v2_multihead_attention/hmtl",
-        "weights_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_dmtl":
-            "data/ogyei_v2/weights/fusion_net/efficient_net_v2_multihead_attention/dmtl",
+        f"weights_fusion_network_efficient_net_v2_multihead_attention_{dataset}_hmtl":
+            f"data/{dataset}/weights/fusion_net/efficient_net_v2_multihead_attention/hmtl",
+        f"weights_fusion_network_efficient_net_v2_multihead_attention_{dataset}_dmtl":
+            f"data/{dataset}/weights/fusion_net/efficient_net_v2_multihead_attention/dmtl",
 
         # --------------------------------------- L O G S   S T R E A M   N E T ----------------------------------------
         # EfficientNetV2
-        "logs_efficient_net_v2_contour_ogyei_v2_hmtl":
-            "data/ogyei_v2/logs/stream_net/efficient_net_v2/contour/hmtl",
-        "logs_efficient_net_v2_lbp_ogyei_v2_hmtl":
-            "data/ogyei_v2/logs/stream_net/efficient_net_v2/lbp/hmtl",
-        "logs_efficient_net_v2_rgb_ogyei_v2_hmtl":
-            "data/ogyei_v2/logs/stream_net/efficient_net_v2/rgb/hmtl",
-        "logs_efficient_net_v2_texture_ogyei_v2_hmtl":
-            "data/ogyei_v2/logs/stream_net/efficient_net_v2/texture/hmtl",
+        f"logs_efficient_net_v2_contour_{dataset}_hmtl":
+            f"data/{dataset}/logs/stream_net/efficient_net_v2/contour/hmtl",
+        f"logs_efficient_net_v2_lbp_{dataset}_hmtl":
+            f"data/{dataset}/logs/stream_net/efficient_net_v2/lbp/hmtl",
+        f"logs_efficient_net_v2_rgb_{dataset}_hmtl":
+            f"data/{dataset}/logs/stream_net/efficient_net_v2/rgb/hmtl",
+        f"logs_efficient_net_v2_texture_{dataset}_hmtl":
+            f"data/{dataset}/logs/stream_net/efficient_net_v2/texture/hmtl",
 
-        "logs_efficient_net_v2_contour_ogyei_v2_dmtl":
-            "data/ogyei_v2/logs/stream_net/efficient_net_v2/contour/dmtl",
-        "logs_efficient_net_v2_lbp_ogyei_v2_dmtl":
-            "data/ogyei_v2/logs/stream_net/efficient_net_v2/lbp/dmtl",
-        "logs_efficient_net_v2_rgb_ogyei_v2_dmtl":
-            "data/ogyei_v2/logs/stream_net/efficient_net_v2/rgb/dmtl",
-        "logs_efficient_net_v2_texture_ogyei_v2_dmtl":
-            "data/ogyei_v2/logs/stream_net/efficient_net_v2/texture/dmtl",
+        f"logs_efficient_net_v2_contour_{dataset}_dmtl":
+            f"data/{dataset}/logs/stream_net/efficient_net_v2/contour/dmtl",
+        f"logs_efficient_net_v2_lbp_{dataset}_dmtl":
+            f"data/{dataset}/logs/stream_net/efficient_net_v2/lbp/dmtl",
+        f"logs_efficient_net_v2_rgb_{dataset}_dmtl":
+            f"data/{dataset}/logs/stream_net/efficient_net_v2/rgb/dmtl",
+        f"logs_efficient_net_v2_texture_{dataset}_dmtl":
+            f"data/{dataset}/logs/stream_net/efficient_net_v2/texture/dmtl",
 
         # ---------------------------------------- L O G S   F U S I O N   N E T ---------------------------------------
-        "logs_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_hmtl":
-            "data/ogyei_v2/logs/fusion_net/efficient_net_v2_multihead_attention/hmtl",
-        "logs_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_dmtl":
-            "data/ogyei_v2/logs/fusion_net/efficient_net_v2_multihead_attention/dmtl",
+        f"logs_fusion_network_efficient_net_v2_multihead_attention_{dataset}_hmtl":
+            f"data/{dataset}/logs/fusion_net/efficient_net_v2_multihead_attention/hmtl",
+        f"logs_fusion_network_efficient_net_v2_multihead_attention_{dataset}_dmtl":
+            f"data/{dataset}/logs/fusion_net/efficient_net_v2_multihead_attention/dmtl",
 
         # -------------------------------- P R E D I C T I O N S    S T R E A M   N E T --------------------------------
         # Predictions
-        "predictions_efficient_net_v2_ogyei_v2_hmtl":
-            "data/ogyei_v2/predictions/stream_net/efficient_net_v2/hmtl",
-        "predictions_efficient_net_v2_ogyei_v2_dmtl":
-            "data/ogyei_v2/predictions/stream_net/efficient_net_v2/dmtl",
+        f"predictions_efficient_net_v2_{dataset}_hmtl":
+            f"data/{dataset}/predictions/stream_net/efficient_net_v2/hmtl",
+        f"predictions_efficient_net_v2_{dataset}_dmtl":
+            f"data/{dataset}/predictions/stream_net/efficient_net_v2/dmtl",
 
         # -------------------------------- P R E D I C T I O N S    F U S I O N   N E T --------------------------------
         # Predictions
-        "predictions_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_hmtl":
-            "data/ogyei_v2/predictions/fusion_net/efficient_net_v2_multihead_attention/hmtl",
-        "predictions_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_dmtl":
-            "data/ogyei_v2/predictions/fusion_net/efficient_net_v2_multihead_attention/dmtl",
+        f"predictions_fusion_network_efficient_net_v2_multihead_attention_{dataset}_hmtl":
+            f"data/{dataset}/predictions/fusion_net/efficient_net_v2_multihead_attention/hmtl",
+        f"predictions_fusion_network_efficient_net_v2_multihead_attention_{dataset}_dmtl":
+            f"data/{dataset}/predictions/fusion_net/efficient_net_v2_multihead_attention/dmtl",
 
         # -------------------------------------------- R E F   V E C T O R S -------------------------------------------
-        "reference_vectors_efficient_net_v2_ogyei_v2_hmtl":
-            "data/ogyei_v2/ref_vec/stream_net/efficient_net_v2/hmtl",
-        "reference_vectors_efficient_net_v2_ogyei_v2_dmtl":
-            "data/ogyei_v2/ref_vec/stream_net/efficient_net_v2/dmtl",
+        f"reference_vectors_efficient_net_v2_{dataset}_hmtl":
+            f"data/{dataset}/ref_vec/stream_net/efficient_net_v2/hmtl",
+        f"reference_vectors_efficient_net_v2_{dataset}_dmtl":
+            f"data/{dataset}/ref_vec/stream_net/efficient_net_v2/dmtl",
 
         # --------------------------------- R E F   V E C T O R S   F U S I O N   N E T --------------------------------
-        "ref_vec_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_hmtl":
-            "data/ogyei_v2/ref_vec/fusion_net/efficient_net_v2_multihead_attention/hmtl",
-        "ref_vec_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_dmtl":
-            "data/ogyei_v2/ref_vec/fusion_net/efficient_net_v2_multihead_attention/dmtl",
+        f"ref_vec_fusion_network_efficient_net_v2_multihead_attention_{dataset}_hmtl":
+            f"data/{dataset}/ref_vec/fusion_net/efficient_net_v2_multihead_attention/hmtl",
+        f"ref_vec_fusion_network_efficient_net_v2_multihead_attention_{dataset}_dmtl":
+            f"data/{dataset}/ref_vec/fusion_net/efficient_net_v2_multihead_attention/dmtl",
 
         # ---------------------------------------- H A R D E S T   S A M P L E S ---------------------------------------
-        "hardest_samples_efficient_net_v2_contour_ogyei_v2_hmtl":
-            "data/ogyei_v2/hardest_samples/efficient_net_v2/contour/hmtl",
-        "hardest_samples_efficient_net_v2_lbp_ogyei_v2_hmtl":
-            "data/ogyei_v2/hardest_samples/efficient_net_v2/lbp/hmtl",
-        "hardest_samples_efficient_net_v2_rgb_ogyei_v2_hmtl":
-            "data/ogyei_v2/hardest_samples/efficient_net_v2/rgb/hmtl",
-        "hardest_samples_efficient_net_v2_texture_ogyei_v2_hmtl":
-            "data/ogyei_v2/hardest_samples/efficient_net_v2/texture/hmtl",
+        f"hardest_samples_efficient_net_v2_contour_{dataset}_hmtl":
+            f"data/{dataset}/hardest_samples/efficient_net_v2/contour/hmtl",
+        f"hardest_samples_efficient_net_v2_lbp_{dataset}_hmtl":
+            f"data/{dataset}/hardest_samples/efficient_net_v2/lbp/hmtl",
+        f"hardest_samples_efficient_net_v2_rgb_{dataset}_hmtl":
+            f"data/{dataset}/hardest_samples/efficient_net_v2/rgb/hmtl",
+        f"hardest_samples_efficient_net_v2_texture_{dataset}_hmtl":
+            f"data/{dataset}/hardest_samples/efficient_net_v2/texture/hmtl",
 
-        "hardest_samples_efficient_net_v2_contour_ogyei_v2_dmtl":
-        "data/ogyei_v2/hardest_samples/efficient_net_v2/contour/dmtl",
-        "hardest_samples_efficient_net_v2_lbp_ogyei_v2_dmtl":
-        "data/ogyei_v2/hardest_samples/efficient_net_v2/lbp/dmtl",
-        "hardest_samples_efficient_net_v2_rgb_ogyei_v2_dmtl":
-        "data/ogyei_v2/hardest_samples/efficient_net_v2/rgb/dmtl",
-        "hardest_samples_efficient_net_v2_texture_ogyei_v2_dmtl":
-        "data/ogyei_v2/hardest_samples/efficient_net_v2/texture/dmtl",
+        f"hardest_samples_efficient_net_v2_contour_{dataset}_dmtl":
+        f"data/{dataset}/hardest_samples/efficient_net_v2/contour/dmtl",
+        f"hardest_samples_efficient_net_v2_lbp_{dataset}_dmtl":
+        f"data/{dataset}/hardest_samples/efficient_net_v2/lbp/dmtl",
+        f"hardest_samples_efficient_net_v2_rgb_{dataset}_dmtl":
+        f"data/{dataset}/hardest_samples/efficient_net_v2/rgb/dmtl",
+        f"hardest_samples_efficient_net_v2_texture_{dataset}_dmtl":
+        f"data/{dataset}/hardest_samples/efficient_net_v2/texture/dmtl",
 
-        "ogyei_v2_k_fold":
-            "data/ogyei_v2/k_fold"
-    }
+        f"{dataset}_k_fold":
+            f"data/{dataset}/k_fold"
+    })
+
+        
 
     def __init__(self):
         super().__init__()
@@ -351,81 +356,80 @@ class NLPData(_Const):
 # +++++++++++++++++++++++++++++++++++++++++++++++++++ D A T A S E T ++++++++++++++++++++++++++++++++++++++++++++++++++++
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 class Datasets(_Const):
-    dirs_dataset = {
+    dirs_dataset = {}
+    for dataset in ["ogyeiv2", "synthetic", "nih"]:
+        dirs_dataset.update({
         # ------------------------------------------------- O G Y E I --------------------------------------------------
         # CUSTOMER
-        "ogyei_v2_customer_images":
-            "ogyei_v2/Customer/images",
-        "ogyei_v2_customer_segmentation_labels":
-            "ogyei_v2/Customer/segmentation_labels",
-        "ogyei_v2_customer_mask_images":
-            "ogyei_v2/Customer/mask_images",
+        f"{dataset}_customer_images":
+            f"{dataset}/Customer/images",
+        f"{dataset}_customer_segmentation_labels":
+            f"{dataset}/Customer/segmentation_labels",
+        f"{dataset}_customer_mask_images":
+            f"{dataset}/Customer/mask_images",
 
         # REFERENCE
-        "ogyei_v2_reference_images":
-            "ogyei_v2/Reference/images",
-        "ogyei_v2_reference_segmentation_labels":
-            "ogyei_v2/Reference/segmentation_labels",
-        "ogyei_v2_reference_mask_images":
-            "ogyei_v2/Reference/mask_images",
+        f"{dataset}_reference_images":
+            f"{dataset}/Reference/images",
+        f"{dataset}_reference_segmentation_labels":
+            f"{dataset}/Reference/segmentation_labels",
+        f"{dataset}_reference_mask_images":
+            f"{dataset}/Reference/mask_images",
 
         # STREAM - Customer
-        "stream_images_ogyei_v2_customer":
-            "ogyei_v2/Customer/stream_images",
-        "stream_images_ogyei_v2_customer_contour":
-            "ogyei_v2/Customer/stream_images/contour",
-        "stream_images_ogyei_v2_customer_lbp":
-            "ogyei_v2/Customer/stream_images/lbp",
-        "stream_images_ogyei_v2_customer_rgb":
-            "ogyei_v2/Customer/stream_images/rgb",
-        "stream_images_ogyei_v2_customer_texture":
-            "ogyei_v2/Customer/stream_images/texture",
+        f"stream_images_{dataset}_customer":
+            f"{dataset}/Customer/stream_images",
+        f"stream_images_{dataset}_customer_contour":
+            f"{dataset}/Customer/stream_images/contour",
+        f"stream_images_{dataset}_customer_lbp":
+            f"{dataset}/Customer/stream_images/lbp",
+        f"stream_images_{dataset}_customer_rgb":
+            f"{dataset}/Customer/stream_images/rgb",
+        f"stream_images_{dataset}_customer_texture":
+            f"{dataset}/Customer/stream_images/texture",
 
         # STREAM - Reference
-        "stream_images_ogyei_v2_reference":
-            "ogyei_v2/Reference/stream_images",
-        "stream_images_ogyei_v2_reference_contour":
-            "ogyei_v2/Reference/stream_images/contour",
-        "stream_images_ogyei_v2_reference_lbp":
-            "ogyei_v2/Reference/stream_images/lbp",
-        "stream_images_ogyei_v2_reference_rgb":
-            "ogyei_v2/Reference/stream_images/rgb",
-        "stream_images_ogyei_v2_reference_texture":
-            "ogyei_v2/Reference/stream_images/texture",
+        f"stream_images_{dataset}_reference":
+            f"{dataset}/Reference/stream_images",
+        f"stream_images_{dataset}_reference_contour":
+            f"{dataset}/Reference/stream_images/contour",
+        f"stream_images_{dataset}_reference_lbp":
+            f"{dataset}/Reference/stream_images/lbp",
+        f"stream_images_{dataset}_reference_rgb":
+            f"{dataset}/Reference/stream_images/rgb",
+        f"stream_images_{dataset}_reference_texture":
+            f"{dataset}/Reference/stream_images/texture",
 
         # UNSPLITTED
-        "ogyei_v2_images":
-            "ogyei_v2/unsplitted/images",
-        "ogyei_v2_mask_images":
-            "ogyei_v2/unsplitted/gt_masks",
-        "ogyei_v2_segmentation_labels":
-            "ogyei_v2/unsplitted/labels",
+        f"{dataset}_images":
+            f"{dataset}/unsplitted/images",
+        f"{dataset}_mask_images":
+            f"{dataset}/unsplitted/gt_masks",
+        f"{dataset}_segmentation_labels":
+            f"{dataset}/unsplitted/labels",
 
         # SPLITTED
-        "ogyei_v2_train_images":
-            "ogyei_v2/splitted/train/images",
-        "ogyei_v2_train_mask_images":
-            "ogyei_v2/splitted/train/gt_train_masks",
-        "ogyei_v2_train_segmentation_labels":
-            "ogyei_v2/splitted/train/labels",
+        f"{dataset}_train_images":
+            f"{dataset}/splitted/train/images",
+        f"{dataset}_train_mask_images":
+            f"{dataset}/splitted/train/gt_train_masks",
+        f"{dataset}_train_segmentation_labels":
+            f"{dataset}/splitted/train/labels",
 
-        "ogyei_v2_valid_images":
-            "ogyei_v2/splitted/valid/images",
-        "ogyei_v2_valid_mask_images":
-            "ogyei_v2/splitted/valid/gt_valid_masks",
-        "ogyei_v2_valid_segmentation_labels":
-            "ogyei_v2/splitted/valid/labels",
+        f"{dataset}_valid_images":
+            f"{dataset}/splitted/valid/images",
+        f"{dataset}_valid_mask_images":
+            f"{dataset}/splitted/valid/gt_valid_masks",
+        f"{dataset}_valid_segmentation_labels":
+            f"{dataset}/splitted/valid/labels",
 
-        "ogyei_v2_test_images":
-            "ogyei_v2/splitted/test/images",
-        "ogyei_v2_test_mask_images":
-            "ogyei_v2/splitted/test/gt_test_masks",
-        "ogyei_v2_test_segmentation_labels":
-            "ogyei_v2/splitted/test/labels",
-
-        "dtd":
-            "dtd_images"
-    }
+        f"{dataset}_test_images":
+            f"{dataset}/splitted/test/images",
+        f"{dataset}_test_mask_images":
+            f"{dataset}/splitted/test/gt_test_masks",
+        f"{dataset}_test_segmentation_labels":
+            f"{dataset}/splitted/test/labels",
+        })
 
     # ------------------------------------------------------------------------------------------------------------------
     # ---------------------------------------------------- I N I T -----------------------------------------------------

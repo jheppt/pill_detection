@@ -12,7 +12,7 @@ from utils.utils import load_config_json
 
 
 class DataLoaderStreamNet(Dataset):
-    def __init__(self, dataset_dirs_anchor: List[str], dataset_dirs_pos_neg: List[str]) -> None:
+    def __init__(self, dataset_dirs_anchor: List[str], dataset_dirs_pos_neg: List[str], type_of_stream:str = None) -> None:
         """
         Initialize the DataLoaderStreamNet class.
         
@@ -30,6 +30,9 @@ class DataLoaderStreamNet(Dataset):
                 json_filename=json_config_selector("stream_net").get("config")
             )
         )
+
+        self.type_of_stream = type_of_stream if type_of_stream is not None else self.cfg.get("type_of_stream")
+
 
         network_type = self.cfg.get("type_of_net")
         network_cfg = self.cfg.get("networks").get(network_type)
@@ -92,14 +95,15 @@ class DataLoaderStreamNet(Dataset):
             transforms.Compose: A transformation pipeline for the images.
         """
 
-        if self.cfg.get("type_of_stream") == "RGB":
+        if self.type_of_stream == "RGB":
             return transforms.Compose([
                 transforms.Resize(self.image_size),
                 transforms.CenterCrop(self.image_size),
                 transforms.ToTensor(),
                 transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
             ])
-        elif self.cfg.get("type_of_stream") in ["Contour", "Texture", "LBP"]:
+        elif self.type_of_stream in ["Contour", "Texture", "LBP"]:
+
             return transforms.Compose([
                 transforms.Resize(self.image_size),
                 transforms.CenterCrop(self.image_size),

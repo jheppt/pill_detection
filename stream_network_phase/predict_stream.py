@@ -12,6 +12,7 @@ import logging
 import os
 import pandas as pd
 import torch
+import wandb
 
 from torchvision import transforms
 from tqdm.auto import tqdm
@@ -25,13 +26,13 @@ from utils.utils import (create_timestamp, find_latest_file_in_latest_directory,
 
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# +++++++++++++++++++++++++++++++++++++ P R E D I C T   S T R E A M   N E T W O R K ++++++++++++++++++++++++++++++++++++
+# +++++++++++++++++++++++++++++++++++++++++++++ P R E D I C T   S T R E A M  +++++++++++++++++++++++++++++++++++++++++++
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class PredictStreamNetwork:
+class PredictStream:
     # ------------------------------------------------------------------------------------------------------------------
     # --------------------------------------------------- __I N I T__ --------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
-    def __init__(self):
+    def __init__(self,type_of_stream:str, dataset_type:str = "ogyeiv2", model_type:str ="ogyeiv2") -> None:
         # Setup logger
         setup_logger()
 
@@ -59,30 +60,28 @@ class PredictStreamNetwork:
         self.confidence_percentages = None
 
         # Load configs
-        self.dataset_type = self.cfg.get("dataset_type")
+        self.model_type = model_type
+        self.dataset_type = dataset_type  #self.cfg.get("dataset_type")
         self.network_type = self.cfg.get("type_of_net")
 
-        self.main_network_config = (
-            stream_network_backbone_paths(
-                dataset_type=self.dataset_type,
+        self.main_network_config = stream_network_backbone_paths(
+                dataset_type=self.model_type,
                 network_type=self.network_type
-            )
-        )
+
+        )[0]
 
         # Select device
         self.device = use_gpu_if_available()
 
-        # Load networks
-        self.network_contour, self.network_lbp, self.network_rgb, self.network_texture = self.load_networks()
-        self.network_contour.eval()
-        self.network_lbp.eval()
-        self.network_rgb.eval()
-        self.network_texture.eval()
+        # type of stream
+        self.type_of_stream = type_of_stream
 
-        self.network_contour = self.network_contour.to(self.device)
-        self.network_lbp = self.network_lbp.to(self.device)
-        self.network_rgb = self.network_rgb.to(self.device)
-        self.network_texture = self.network_texture.to(self.device)
+        # Load networks
+        self.network = self.load_network()
+        self.network.eval()
+
+
+        self.network = self.network.to(self.device)
 
         image_size = self.cfg.get("networks").get(self.network_type).get("image_size")
 
@@ -133,7 +132,7 @@ class PredictStreamNetwork:
     # ------------------------------------------------------------------------------------------------------------------
     # -------------------------------------------- L O A D   N E T W O R K S -------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
-    def load_networks(self):
+    def load_network(self) -> torch.nn.Module:
         """
         This function loads the pretrained networks, with the latest .pt files
 
@@ -141,53 +140,25 @@ class PredictStreamNetwork:
              The Contour, LBP, RGB, and Texture networks.
         """
 
-        contour_substream_network_cfg = self.cfg.get("streams").get("Contour")
-        lbp_substream_network_cfg = self.cfg.get("streams").get("LBP")
-        rgb_substream_network_cfg = self.cfg.get("streams").get("RGB")
-        texture_substream_network_cfg = self.cfg.get("streams").get("Texture")
+        substream_network_cfg = self.cfg.get("streams").get(self.type_of_stream)
 
-        contour_weight_files_path = (
-            substream_paths().get("Contour").get(self.dataset_type).get(self.network_type).get("model_weights_dir").get(self.cfg.get("type_of_loss_func"))
-        )
-        lbp_weight_files_path = (
-            substream_paths().get("LBP").get(self.dataset_type).get(self.network_type).get("model_weights_dir").get(self.cfg.get("type_of_loss_func"))
-        )
-        rgb_weight_files_path = (
-            substream_paths().get("RGB").get(self.dataset_type).get(self.network_type).get("model_weights_dir").get(self.cfg.get("type_of_loss_func"))
-        )
-        texture_weight_files_path = (
-            substream_paths().get("Texture").get(self.dataset_type).get(self.network_type).get("model_weights_dir").get(self.cfg.get("type_of_loss_func"))
+
+        weight_files_path = (
+            substream_paths().get(self.type_of_stream).get(self.model_type).get(self.network_type).get("model_weights_dir").get(self.cfg.get("type_of_loss_func"))
         )
 
-        latest_con_pt_file = find_latest_file_in_latest_directory(
-            path=contour_weight_files_path
-        )
-        latest_lbp_pt_file = find_latest_file_in_latest_directory(
-            path=lbp_weight_files_path
-        )
-        latest_rgb_pt_file = find_latest_file_in_latest_directory(
-            path=rgb_weight_files_path
-        )
-        latest_tex_pt_file = find_latest_file_in_latest_directory(
-            path=texture_weight_files_path
+        latest_pt_file = find_latest_file_in_latest_directory(
+            path=weight_files_path
         )
 
-        network_con = StreamNetworkFactory.create_network(self.network_type, contour_substream_network_cfg)
-        network_lbp = StreamNetworkFactory.create_network(self.network_type, lbp_substream_network_cfg)
-        network_rgb = StreamNetworkFactory.create_network(self.network_type, rgb_substream_network_cfg)
-        network_tex = StreamNetworkFactory.create_network(self.network_type, texture_substream_network_cfg)
+        network_stream = StreamNetworkFactory.create_network(self.network_type, substream_network_cfg)
 
-        network_con.load_state_dict(torch.load(latest_con_pt_file))
-        network_lbp.load_state_dict(torch.load(latest_lbp_pt_file))
-        network_rgb.load_state_dict(torch.load(latest_rgb_pt_file))
-        network_tex.load_state_dict(torch.load(latest_tex_pt_file))
 
-        return (
-            network_con,
-            network_lbp,
-            network_rgb,
-            network_tex
-        )
+        network_stream.load_state_dict(torch.load(latest_pt_file))
+
+        return network_stream
+
+
 
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------------ S A V E   R E F E R E N C E   V E C T O R -----------------------------------
@@ -218,90 +189,61 @@ class PredictStreamNetwork:
     # ------------------------------------------------------------------------------------------------------------------
     # ---------------------------------------------- G E T   V E C T O R S ---------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
-    def get_vectors(self, images_dirs: dict, operation: str):
+    def get_vector(self, images_dir: dict, operation: str):
         """
         Args:
             images_dirs:
-                dictionary containing paths to the query/reference images for contour, LBP, RGB, and texture streams.
+                Dictionary containing paths to the images for different streams (e.g., 'con', 'lbp', 'rgb', 'tex').
             operation:
-                string indicating the type of operation ('query' or 'reference').
+                String indicating the type of operation ('query' or 'reference').
+            type_of_stream:
+                String indicating the type of stream to process (e.g., 'con', 'lbp', 'rgb', 'tex').
 
         Returns:
-            tuple containing dictionaries - vectors, labels, and image_paths.
+            tuple containing dictionaries - vectors, labels, and image_tensors.
         """
 
-        logging.info(f"Processing {operation} images")
+        logging.info(f"Processing {operation} images for {self.type_of_stream} stream")
         color = colorama.Fore.BLUE if operation == "query" else colorama.Fore.RED
-        medicine_classes = os.listdir(images_dirs["rgb"])
+        medicine_classes = os.listdir(images_dir)
 
         vectors = {}
         labels = {}
-        images_path = {}
+        images_tensors= {}
         ground_truth_labels = []
 
-        for image_name in tqdm(medicine_classes, desc=color + f"\nProcessing {operation} images", position=0, leave=True):
-            # Collecting image paths for each stream
-
-            image_paths = {
-                'con': os.listdir(os.path.join(images_dirs['con'], image_name)),
-                'lbp': os.listdir(os.path.join(images_dirs['lbp'], image_name)),
-                'rgb': os.listdir(os.path.join(images_dirs['rgb'], image_name)),
-                'tex': os.listdir(os.path.join(images_dirs['tex'], image_name))
-            }
+        for image_name in tqdm(medicine_classes,
+                               desc=color + f"\nProcessing {operation} images for {self.type_of_stream} stream", position=0,
+                               leave=True):
+            # Collect image paths for the selected stream
+            image_paths = os.listdir(os.path.join(images_dir, image_name))
 
             vectors[image_name] = []
             labels[image_name] = []
-            images_path[image_name] = []
+            images_tensors[image_name] = []
 
-            for idx, (con, lbp, rgb, tex) in enumerate(zip(
-                    image_paths['con'], image_paths['lbp'], image_paths['rgb'], image_paths['tex'])
-            ):
-
-                # Load images and preprocess them
-                contour_image = (
-                    self.preprocess_con_tex_lbp(
-                        Image.open(os.path.join(images_dirs['con'], image_name, con))
-                    )
-                )
-                lbp_image = (
-                    self.preprocess_con_tex_lbp(
-                        Image.open(os.path.join(images_dirs['lbp'], image_name, lbp))
-                    )
-                )
-                rgb_image = (
-                    self.preprocess_rgb(
-                        Image.open(os.path.join(images_dirs['rgb'], image_name, rgb))
-                    )
-                )
-                tex_image = (
-                    self.preprocess_con_tex_lbp(
-                        Image.open(os.path.join(images_dirs['tex'], image_name, tex))
-                    )
-                )
+            for idx, image_path in enumerate(image_paths):
+                # Load and preprocess the image for the selected stream
+                image = Image.open(os.path.join(images_dir, image_name, image_path))
+                if self.type_of_stream == "RGB":
+                    preprocessed_image = self.preprocess_rgb(image)
+                else:
+                    preprocessed_image = self.preprocess_con_tex_lbp(image)
 
                 # Move to device
-                contour_image, lbp_image, rgb_image, tex_image = [
-                    img.unsqueeze(0).to(self.device) for img in
-                    [contour_image, lbp_image, rgb_image, tex_image]
-                ]
+                preprocessed_image = preprocessed_image.unsqueeze(0).to(self.device)
 
-                # Forward pass through the networks (Query embeddings)
+                # Forward pass through the network for the selected stream
                 with torch.no_grad():
-                    contour_vector = self.network_contour(contour_image)
-                    lbp_vector = self.network_lbp(lbp_image)
-                    rgb_vector = self.network_rgb(rgb_image)
-                    texture_vector = self.network_texture(tex_image)
-
-                # Concatenate the embeddings into one vector
-                concatenated_vector = torch.cat([contour_vector, lbp_vector, rgb_vector, texture_vector], dim=1).cpu()
+                    vector = self.network(preprocessed_image)
 
                 # Append results to the dictionary
-                vectors[image_name].append(concatenated_vector)
-                images_path[image_name].append(os.path.join(images_dirs['rgb'], image_name, image_paths['rgb'][idx]))
+                vectors[image_name].append(vector.cpu())
+                images_tensors[image_name].append(preprocessed_image)
                 ground_truth_labels.append(image_name)
 
-        logging.info(f"Processing of {operation} images is complete")
-        return vectors, images_path, ground_truth_labels
+        logging.info(f"Processing of {operation} images for {self.type_of_stream} stream is complete")
+        return vectors, images_tensors, ground_truth_labels
 
     # ------------------------------------------------------------------------------------------------------------------
     # ------------------------------- M E A S U R E   C O S S I M   A N D   E U C D I S T ------------------------------
@@ -421,6 +363,13 @@ class PredictStreamNetwork:
             ['Accuracy (Top-1):', f'{self.accuracy_top1:.4%}'],
             ['Accuracy (Top-5):', f'{self.accuracy_top5:.4%}']
         ]
+        wandb.log({"Accuracy (Top-1)": self.accuracy_top1,
+                   "Accuracy (Top-5)": self.accuracy_top5,
+                   "Miss predicted top 1": len(ground_truth_labels) - self.num_correct_top1,
+                   "Miss predicted top 5": len(ground_truth_labels) - self.num_correct_top5,
+                   "Correctly predicted (Top-1)": self.num_correct_top1,
+                   "Correctly predicted (Top-5)": self.num_correct_top5})
+
         df_stat = pd.DataFrame(df_stat, columns=['Metric', 'Value'])
 
         # Set Pandas options for better visibility in logs or console
@@ -444,7 +393,7 @@ class PredictStreamNetwork:
     # ------------------------------------------------------------------------------------------------------------------
     # ----------------------------------------------------- M A I N ----------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
-    def main(self) -> None:
+    def predict(self) -> None:
         """
         Executes the pipeline for prediction.
 
@@ -452,30 +401,13 @@ class PredictStreamNetwork:
              None
         """
 
-        query_dirs = {
-            "con":
-                substream_paths().get("Contour").get(self.dataset_type).get(self.network_type).get("test").get("query"),
-            "lbp":
-                substream_paths().get("LBP").get(self.dataset_type).get(self.network_type).get("test").get("query"),
-            "rgb":
-                substream_paths().get("RGB").get(self.dataset_type).get(self.network_type).get("test").get("query"),
-            "tex":
-                substream_paths().get("Texture").get(self.dataset_type).get(self.network_type).get("test").get("query")
-        }
+        query_dir = substream_paths().get(self.type_of_stream).get(self.dataset_type).get(self.network_type).get("test").get("query")
 
-        reference_dirs = {
-            "con":
-                substream_paths().get("Contour").get(self.dataset_type).get(self.network_type).get("test").get("ref"),
-            "lbp":
-                substream_paths().get("LBP").get(self.dataset_type).get(self.network_type).get("test").get("ref"),
-            "rgb":
-                substream_paths().get("RGB").get(self.dataset_type).get(self.network_type).get("test").get("ref"),
-            "tex":
-                substream_paths().get("Texture").get(self.dataset_type).get(self.network_type).get("test").get("ref")
-        }
+        reference_dir = substream_paths().get(self.type_of_stream).get(self.dataset_type).get(self.network_type).get("test").get("ref")
 
-        query_vecs, query_image_paths, gt_labels = self.get_vectors(query_dirs, "query")
-        reference_vecs, reference_image_paths, _ = self.get_vectors(reference_dirs, "reference")
+
+        query_vecs, query_image_tensors, query_lables = self.get_vector(query_dir, "query")
+        reference_vecs, reference_image_tensors, _ = self.get_vector(reference_dir, "reference")
 
         predicted_medicines = self.compare_query_and_reference_vectors(reference_vecs, query_vecs)
         self.display_results(query_vecs, predicted_medicines)
@@ -487,15 +419,19 @@ class PredictStreamNetwork:
                 f"{self.timestamp}"
             )
         )
-        plot_ref_query_images(gt_labels, predicted_medicines, query_image_paths, reference_image_paths, plot_dir)
+        plot_ref_query_images(query_lables, predicted_medicines, query_image_tensors, reference_image_tensors, plot_dir, max_correct=0, max_incorrect=100, save_images=False)
+
+if __name__ == '__main__':
+    type_of_stream = "Contour" # one of ["Contour", "LBP", "RGB", "Texture"]
+    model_type = "synthetic" # one of ["ogyeiv2", "synthetic"]
+    dataset_type = "synthetic"
+    project = "stream_network_predict_test"
+    name = f"{type_of_stream}_{model_type}_on_{dataset_type}"
 
 
-# ----------------------------------------------------------------------------------------------------------------------
-# ----------------------------------------------------- __M A I N__ ----------------------------------------------------
-# ----------------------------------------------------------------------------------------------------------------------
-if __name__ == "__main__":
-    try:
-        pill_rec = PredictStreamNetwork()
-        pill_rec.main()
-    except KeyboardInterrupt as kie:
-        logging.error(kie)
+
+
+    wandb.init(project="stream_network_predict_test", name=name)
+
+    stream = PredictStream(type_of_stream=type_of_stream, dataset_type=dataset_type, model_type=model_type)
+    stream.predict()

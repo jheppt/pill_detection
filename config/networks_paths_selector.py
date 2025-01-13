@@ -12,117 +12,35 @@ def substream_paths() -> Dict:
          A dictionary containing the configuration details for the four subnetworks.
     """
 
-    network_config = {
-        # ----------------------------------------------- C O N T O U R ------------------------------------------------
-        "Contour": {
-            "ogyeiv2": {
-                "EfficientNetV2": {
-                    "train": {
-                        "anchor": IMAGES_PATH.get_data_path("contour_stream_ogyei_v2_anchor"),
-                        "pos_neg": IMAGES_PATH.get_data_path("contour_stream_ogyei_v2_pos_neg")
-                    },
-                    "test": {
-                        "ref": IMAGES_PATH.get_data_path("contour_stream_ref_ogyei_v2"),
-                        "query": IMAGES_PATH.get_data_path("contour_stream_query_ogyei_v2")
-                    },
-                    "model_weights_dir": {
-                        "hmtl": DATA_PATH.get_data_path("weights_efficient_net_v2_contour_ogyei_v2_hmtl"),
-                        "dmtl": DATA_PATH.get_data_path("weights_efficient_net_v2_contour_ogyei_v2_dmtl")
-                    },
-                    "logs_dir": {
-                        "hmtl": DATA_PATH.get_data_path("logs_efficient_net_v2_contour_ogyei_v2_hmtl"),
-                        "dmtl": DATA_PATH.get_data_path("logs_efficient_net_v2_contour_ogyei_v2_dmtl"),
-                    },
-                    "hardest_samples": {
-                        "hmtl": DATA_PATH.get_data_path("hardest_samples_efficient_net_v2_contour_ogyei_v2_hmtl"),
-                        "dmtl": DATA_PATH.get_data_path("hardest_samples_efficient_net_v2_contour_ogyei_v2_dmtl")
-                    }
+    network_config = {}
+    # ----------------------------------------------- C O N T O U R ------------------------------------------------
+    for stream in ["Contour", "LBP", "RGB", "Texture"]:
+        network_config[stream] = {}
+        for dataset in ["ogyeiv2", "synthetic", "nih"]:
+            network_config[stream][dataset] = {}
+            for network in ["EfficientNetV2"]:
+                network_config[stream][dataset][network] = {
+                "train": {
+                    "anchor": IMAGES_PATH.get_data_path(f"{stream.lower()}_stream_{dataset}_anchor"),
+                    "pos_neg": IMAGES_PATH.get_data_path(f"{stream.lower()}_stream_{dataset}_pos_neg")
+                },
+                "test": {
+                    "ref": IMAGES_PATH.get_data_path(f"{stream.lower()}_stream_{dataset}_ref"),
+                    "query": IMAGES_PATH.get_data_path(f"{stream.lower()}_stream_{dataset}_query")
+                },
+                "model_weights_dir": {
+                    "hmtl": DATA_PATH.get_data_path(f"weights_efficient_net_v2_{stream.lower()}_{dataset}_hmtl"),
+                    "dmtl": DATA_PATH.get_data_path(f"weights_efficient_net_v2_{stream.lower()}_{dataset}_dmtl")
+                },
+                "logs_dir": {
+                    "hmtl": DATA_PATH.get_data_path(f"logs_efficient_net_v2_{stream.lower()}_{dataset}_hmtl"),
+                    "dmtl": DATA_PATH.get_data_path(f"logs_efficient_net_v2_{stream.lower()}_{dataset}_dmtl"),
+                },
+                "hardest_samples": {
+                    "hmtl": DATA_PATH.get_data_path(f"hardest_samples_efficient_net_v2_{stream.lower()}_{dataset}_hmtl"),
+                    "dmtl": DATA_PATH.get_data_path(f"hardest_samples_efficient_net_v2_contour_{dataset}_dmtl")
                 }
             }
-        },
-        # ----------------------------------------------- L B P ------------------------------------------------
-        "LBP": {
-            "ogyeiv2": {
-                "EfficientNetV2": {
-                    "train": {
-                        "anchor": IMAGES_PATH.get_data_path("lbp_stream_ogyei_v2_anchor"),
-                        "pos_neg": IMAGES_PATH.get_data_path("lbp_stream_ogyei_v2_pos_neg")
-                    },
-                    "test": {
-                        "ref": IMAGES_PATH.get_data_path("lbp_stream_ref_ogyei_v2"),
-                        "query": IMAGES_PATH.get_data_path("lbp_stream_query_ogyei_v2")
-                    },
-                    "model_weights_dir": {
-                        "hmtl": DATA_PATH.get_data_path("weights_efficient_net_v2_lbp_ogyei_v2_hmtl"),
-                        "dmtl": DATA_PATH.get_data_path("weights_efficient_net_v2_lbp_ogyei_v2_dmtl")
-                    },
-                    "logs_dir": {
-                        "hmtl": DATA_PATH.get_data_path("logs_efficient_net_v2_lbp_ogyei_v2_hmtl"),
-                        "dmtl": DATA_PATH.get_data_path("logs_efficient_net_v2_lbp_ogyei_v2_dmtl"),
-                    },
-                    "hardest_samples": {
-                        "hmtl": DATA_PATH.get_data_path("hardest_samples_efficient_net_v2_lbp_ogyei_v2_hmtl"),
-                        "dmtl": DATA_PATH.get_data_path("hardest_samples_efficient_net_v2_lbp_ogyei_v2_dmtl")
-                    }
-                }
-            }
-        },
-        # ----------------------------------------------- R G B ------------------------------------------------
-        "RGB": {
-            "ogyeiv2": {
-                "EfficientNetV2": {
-                    "train": {
-                        "anchor": IMAGES_PATH.get_data_path("rgb_stream_ogyei_v2_anchor"),
-                        "pos_neg": IMAGES_PATH.get_data_path("rgb_stream_ogyei_v2_pos_neg")
-                    },
-                    "test": {
-                        "ref": IMAGES_PATH.get_data_path("rgb_stream_ref_ogyei_v2"),
-                        "query": IMAGES_PATH.get_data_path("rgb_stream_query_ogyei_v2")
-                    },
-                    "model_weights_dir": {
-                        "hmtl": DATA_PATH.get_data_path("weights_efficient_net_v2_rgb_ogyei_v2_hmtl"),
-                        "dmtl": DATA_PATH.get_data_path("weights_efficient_net_v2_rgb_ogyei_v2_dmtl")
-                    },
-                    "logs_dir": {
-                        "hmtl": DATA_PATH.get_data_path("logs_efficient_net_v2_rgb_ogyei_v2_hmtl"),
-                        "dmtl": DATA_PATH.get_data_path("logs_efficient_net_v2_rgb_ogyei_v2_dmtl"),
-                    },
-                    "hardest_samples": {
-                        "hmtl": DATA_PATH.get_data_path("hardest_samples_efficient_net_v2_rgb_ogyei_v2_hmtl"),
-                        "dmtl": DATA_PATH.get_data_path("hardest_samples_efficient_net_v2_rgb_ogyei_v2_dmtl")
-                    }
-                }
-            }
-        },
-        # -------------------------------------------- T E X T U R E ------------------------------------------------
-        "Texture": {
-            "ogyeiv2": {
-                "EfficientNetV2": {
-                    "train": {
-                        "anchor": IMAGES_PATH.get_data_path("texture_stream_ogyei_v2_anchor"),
-                        "pos_neg": IMAGES_PATH.get_data_path("texture_stream_ogyei_v2_pos_neg")
-                    },
-                    "test": {
-                        "ref": IMAGES_PATH.get_data_path("texture_stream_ref_ogyei_v2"),
-                        "query": IMAGES_PATH.get_data_path("texture_stream_query_ogyei_v2")
-                    },
-                    "model_weights_dir": {
-                        "hmtl": DATA_PATH.get_data_path("weights_efficient_net_v2_texture_ogyei_v2_hmtl"),
-                        "dmtl": DATA_PATH.get_data_path("weights_efficient_net_v2_texture_ogyei_v2_dmtl")
-                    },
-                    "logs_dir": {
-                        "hmtl": DATA_PATH.get_data_path("logs_efficient_net_v2_texture_ogyei_v2_hmtl"),
-                        "dmtl": DATA_PATH.get_data_path("logs_efficient_net_v2_texture_ogyei_v2_dmtl"),
-                    },
-                    "hardest_samples": {
-                        "hmtl": DATA_PATH.get_data_path("hardest_samples_efficient_net_v2_texture_ogyei_v2_hmtl"),
-                        "dmtl": DATA_PATH.get_data_path("hardest_samples_efficient_net_v2_texture_ogyei_v2_dmtl")
-                    }
-                }
-            }
-        }
-    }
-
     return network_config
 
 
@@ -141,39 +59,40 @@ def stream_network_backbone_paths(dataset_type, network_type) -> Dict:
     Returns:
          dict: Dictionary containing the prediction, plotting, and reference vectors folder paths.
     """
+    network_configs ={}
 
-    network_configs = {
-        'ogyeiv2': {
-            'EfficientNetV2': {
-                'prediction_folder': {
-                    "hmtl": DATA_PATH.get_data_path("predictions_efficient_net_v2_ogyei_v2_hmtl"),
-                    "dmtl": DATA_PATH.get_data_path("predictions_efficient_net_v2_ogyei_v2_dmtl")
+
+    for dataset in ["ogyeiv2", "synthetic", "nih"]:
+        network_configs[dataset] = {}
+        for network in ["EfficientNetV2"]:
+            network_configs[dataset][network] = {
+            'prediction_folder': {
+                "hmtl": DATA_PATH.get_data_path(f"predictions_efficient_net_v2_{dataset}_hmtl"),
+                "dmtl": DATA_PATH.get_data_path(f"predictions_efficient_net_v2_{dataset}_dmtl")
+            },
+            'plotting_folder': {
+                "hmtl": IMAGES_PATH.get_data_path(f"plotting_efficient_net_v2_{dataset}_hmtl"),
+                "dmtl": IMAGES_PATH.get_data_path(f"plotting_efficient_net_v2_{dataset}_dmtl")
+            },
+            'ref_vectors_folder': {
+                "hmtl": DATA_PATH.get_data_path(f"reference_vectors_efficient_net_v2_{dataset}_hmtl"),
+                "dmtl": DATA_PATH.get_data_path(f"reference_vectors_efficient_net_v2_{dataset}_dmtl"),
+            },
+            'hard_sample': {
+                "hmtl": {
+                    "Contour": DATA_PATH.get_data_path(f"hardest_samples_efficient_net_v2_contour_{dataset}_hmtl"),
+                    "LBP": DATA_PATH.get_data_path(f"hardest_samples_efficient_net_v2_lbp_{dataset}_hmtl"),
+                    "RGB": DATA_PATH.get_data_path(f"hardest_samples_efficient_net_v2_rgb_{dataset}_hmtl"),
+                    "Texture": DATA_PATH.get_data_path(f"hardest_samples_efficient_net_v2_texture_{dataset}_hmtl")
                 },
-                'plotting_folder': {
-                    "hmtl": IMAGES_PATH.get_data_path("plotting_efficient_net_v2_ogyei_v2_hmtl"),
-                    "dmtl": IMAGES_PATH.get_data_path("plotting_efficient_net_v2_ogyei_v2_dmtl")
-                },
-                'ref_vectors_folder': {
-                    "hmtl": DATA_PATH.get_data_path("reference_vectors_efficient_net_v2_ogyei_v2_hmtl"),
-                    "dmtl": DATA_PATH.get_data_path("reference_vectors_efficient_net_v2_ogyei_v2_dmtl"),
-                },
-                'hard_sample': {
-                    "hmtl": {
-                        "Contour": DATA_PATH.get_data_path("hardest_samples_efficient_net_v2_contour_ogyei_v2_hmtl"),
-                        "LBP": DATA_PATH.get_data_path("hardest_samples_efficient_net_v2_lbp_ogyei_v2_hmtl"),
-                        "RGB": DATA_PATH.get_data_path("hardest_samples_efficient_net_v2_rgb_ogyei_v2_hmtl"),
-                        "Texture": DATA_PATH.get_data_path("hardest_samples_efficient_net_v2_texture_ogyei_v2_hmtl")
-                    },
-                    "dmtl": {
-                        "Contour": DATA_PATH.get_data_path("hardest_samples_efficient_net_v2_contour_ogyei_v2_dmtl"),
-                        "LBP": DATA_PATH.get_data_path("hardest_samples_efficient_net_v2_lbp_ogyei_v2_dmtl"),
-                        "RGB": DATA_PATH.get_data_path("hardest_samples_efficient_net_v2_rgb_ogyei_v2_dmtl"),
-                        "Texture": DATA_PATH.get_data_path("hardest_samples_efficient_net_v2_texture_ogyei_v2_dmtl")
-                    }
+                "dmtl": {
+                    "Contour": DATA_PATH.get_data_path(f"hardest_samples_efficient_net_v2_contour_{dataset}_dmtl"),
+                    "LBP": DATA_PATH.get_data_path(f"hardest_samples_efficient_net_v2_lbp_{dataset}_dmtl"),
+                    "RGB": DATA_PATH.get_data_path(f"hardest_samples_efficient_net_v2_rgb_{dataset}_dmtl"),
+                    "Texture": DATA_PATH.get_data_path(f"hardest_samples_efficient_net_v2_texture_{dataset}_dmtl")
                 }
             }
-        }
-    }
+        },
 
     return network_configs[dataset_type][network_type]
 
@@ -194,61 +113,60 @@ def fusion_network_paths(dataset_type: str, network_type: str) -> Dict:
         dict: Dictionary containing the folder paths for logs, weights, predictions, plotting, and reference vectors.
     """
 
-    network_configs = {
-        'ogyeiv2': {
+    network_configs = {}
+    for dataset in ["ogyeiv2", "synthetic", "nih"]:
+        network_configs[dataset] = {
             'EfficientNetV2MultiHeadAttention': {
                 'logs_folder': {
                     "hmtl":
                         DATA_PATH.get_data_path(
-                            "logs_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_hmtl"
+                            f"logs_fusion_network_efficient_net_v2_multihead_attention_{dataset}_hmtl"
                         ),
                     "dmtl":
                         DATA_PATH.get_data_path(
-                            "logs_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_dmtl"
+                            f"logs_fusion_network_efficient_net_v2_multihead_attention_{dataset}_dmtl"
                         ),
                 },
                 'weights_folder': {
                     "hmtl":
                         DATA_PATH.get_data_path(
-                            "weights_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_hmtl"
+                            f"weights_fusion_network_efficient_net_v2_multihead_attention_{dataset}_hmtl"
                         ),
                     "dmtl":
                         DATA_PATH.get_data_path(
-                            "weights_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_dmtl"
+                            f"weights_fusion_network_efficient_net_v2_multihead_attention_{dataset}_dmtl"
                         )
                 },
                 'prediction_folder': {
                     "hmtl":
                         DATA_PATH.get_data_path(
-                            "predictions_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_hmtl"
+                            f"predictions_fusion_network_efficient_net_v2_multihead_attention_{dataset}_hmtl"
                         ),
                     "dmtl":
                         DATA_PATH.get_data_path(
-                            "predictions_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_dmtl"
+                            f"predictions_fusion_network_efficient_net_v2_multihead_attention_{dataset}_dmtl"
                         ),
                 },
                 'plotting_folder': {
                     "hmtl":
                         IMAGES_PATH.get_data_path(
-                            "plotting_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_hmtl"
+                            f"plotting_fusion_network_efficient_net_v2_multihead_attention_{dataset}_hmtl"
                         ),
                     "dmtl":
                         IMAGES_PATH.get_data_path(
-                            "plotting_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_dmtl"
+                            f"plotting_fusion_network_efficient_net_v2_multihead_attention_{dataset}_dmtl"
                         ),
                 },
                 'ref_vectors_folder': {
                     "hmtl":
                         DATA_PATH.get_data_path(
-                            "ref_vec_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_hmtl"
+                            f"ref_vec_fusion_network_efficient_net_v2_multihead_attention_{dataset}_hmtl"
                         ),
                     "dmtl":
                         DATA_PATH.get_data_path(
-                            "ref_vec_fusion_network_efficient_net_v2_multihead_attention_ogyei_v2_dmtl"
+                            f"ref_vec_fusion_network_efficient_net_v2_multihead_attention_{dataset}_dmtl"
                         )
                 }
             }
         }
-    }
-
     return network_configs[dataset_type][network_type]

@@ -10,15 +10,24 @@ Description: This code implements the training for the stream network phase.
 import colorama
 import logging
 import numpy as np
+import sys
 import os
 import torch
+import wandb
+from numpy.random import random
 
 from tqdm import tqdm
-from torch.optim.lr_scheduler import StepLR
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.tensorboard import SummaryWriter
 from torchsummary import summary
 from typing import List, Tuple
 from pytorch_metric_learning import losses, miners
+
+from stream_network_phase.predict_stream import PredictStream
+
+# Füge den übergeordneten Pfad hinzu
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
 
 from config.json_config import json_config_selector
 from config.networks_paths_selector import substream_paths
@@ -37,7 +46,7 @@ class TrainModel:
     # ------------------------------------------------------------------------------------------------------------------
     # --------------------------------------------------- _ I N I T _ --------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
-    def __init__(self):
+    def __init__(self, type_of_stream:str = None):
         # Set up logger
         self.logger = setup_logger()
 
@@ -61,19 +70,26 @@ class TrainModel:
         # Setup network config
         self.dataset_type = self.cfg.get("dataset_type")
 
-        stream_type = self.cfg.get("type_of_stream")
-        self.type_of_net = self.cfg.get("type_of_net")
 
-        substream_network_cfg = self.cfg.get("streams").get(stream_type)
+        self.stream_type = self.cfg.get("stream_type") if type_of_stream is None else type_of_stream
+        self.type_of_net = self.cfg.get("type_of_net")
+        # set run Postifix timestamp
+        self.run_postfix = self.cfg.get("run_postfix") if self.cfg.get("run_postfix") is not None else self.timestamp
+
+        substream_network_cfg = self.cfg.get("streams").get(self.stream_type)
         backbone_network_cfg = self.cfg.get("networks").get(self.type_of_net)
 
         # Loss type
         loss_type = self.cfg.get("type_of_loss_func")
 
+        wandb.init(config = self.cfg, dir=os.path.join(parent_dir, "wandb_logging"), name=f"{self.dataset_type}_{self.stream_type}_{self.run_postfix}")
+
         # Load model and upload it to the GPU
         self.model = StreamNetworkFactory.create_network(self.type_of_net, substream_network_cfg)
         self.model = self.model.to(self.device)
 
+        # Magic
+        wandb.watch( self.model, log_freq=100, log="all")
         # Print model configuration
         summary(
             model=self.model,
@@ -86,15 +102,16 @@ class TrainModel:
 
         # Create dataset
         dataset_dirs_anchor = (
-            substream_paths().get(stream_type).get(self.dataset_type).get(self.type_of_net).get("train").get("anchor")
+            substream_paths().get(self.stream_type).get(self.dataset_type).get(self.type_of_net).get("train").get("anchor")
         )
         dataset_dir_pos_neg = (
-            substream_paths().get(stream_type).get(self.dataset_type).get(self.type_of_net).get("train").get("pos_neg")
+            substream_paths().get(self.stream_type).get(self.dataset_type).get(self.type_of_net).get("train").get("pos_neg")
         )
         dataset = \
             DataLoaderStreamNet(
                 dataset_dirs_anchor=[dataset_dirs_anchor],
-                dataset_dirs_pos_neg=[dataset_dir_pos_neg]
+                dataset_dirs_pos_neg=[dataset_dir_pos_neg],
+                type_of_stream=self.stream_type,
             )
 
         self.mapping = dataset.reference_encoding_map
@@ -146,17 +163,16 @@ class TrainModel:
 
         # LR scheduler
         self.scheduler = (
-            StepLR(
+            CosineAnnealingLR(
                 optimizer=self.optimizer,
-                step_size=self.cfg.get("step_size"),
-                gamma=self.cfg.get("gamma")
+                T_max=self.cfg.get("epochs"),
             )
         )
 
         # Tensorboard
         tensorboard_log_dir = (
             self.create_save_dirs(
-                network_cfg=substream_paths().get(stream_type),
+                network_cfg=substream_paths().get(self.stream_type),
                 subdir="logs_dir",
                 loss=loss_type
             )
@@ -170,7 +186,7 @@ class TrainModel:
         # Create save directory for model weights
         self.save_path = (
             self.create_save_dirs(
-                network_cfg=substream_paths().get(stream_type),
+                network_cfg=substream_paths().get(self.stream_type),
                 subdir="model_weights_dir",
                 loss=loss_type
             )
@@ -179,7 +195,7 @@ class TrainModel:
         # Create save directory for hard samples
         self.hard_samples_path = (
             self.create_save_dirs(
-                network_cfg=substream_paths().get(stream_type),
+                network_cfg=substream_paths().get(self.stream_type),
                 subdir="hardest_samples",
                 loss=loss_type
             )
@@ -347,6 +363,45 @@ class TrainModel:
         return valid_losses
 
     # ------------------------------------------------------------------------------------------------------------------
+    # ---------------------------------------------- P R E D I C T L O O P  --------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
+    def predict_loop(self, data_loader) -> Tuple[List[str], List[str]]:
+        """
+        Prediction loop for the model.
+
+        Args:
+            data_loader: DataLoader containing the data to predict.
+
+        Returns:
+            predicted_labels: List of predicted labels.
+            true_labels: List of true labels.
+        """
+
+        predicted_labels = []
+        true_labels = []
+
+        with (torch.no_grad()):
+            for idx, (consumer_images, consumer_labels, _, reference_images, reference_labels, _) \
+                    in tqdm(enumerate(data_loader),
+                            total=len(data_loader),
+                            desc=colorama.Fore.MAGENTA + "Prediction"):
+                # Upload data to GPU
+                consumer_images = consumer_images.to(self.device)
+                reference_images = reference_images.to(self.device)
+
+                # Forward pass
+                consumer_embeddings = self.model(consumer_images)
+                reference_embeddings = self.model(reference_images)
+
+                consumer_labels = self.convert_labels(consumer_labels)
+                reference_labels = self.convert_labels(reference_labels)
+
+
+
+
+        return predicted_labels, true_labels
+
+    # ------------------------------------------------------------------------------------------------------------------
     # ---------------------------------------- S A V E   H A R D   S A M P L E S ---------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
     def save_hard_samples(self, hard_samples: List[List[str]], epoch: int) -> None:
@@ -423,10 +478,12 @@ class TrainModel:
             train_loss = np.average(train_losses)
             valid_loss = np.average(valid_losses)
 
+
             self.writer.add_scalars("Loss", {"train": train_loss, "validation": valid_loss}, epoch)
 
             # Log loss for epoch
             logging.info(f'train_loss: {train_loss:.5f} valid_loss: {valid_loss:.5f}')
+            wandb.log({"train_loss": train_loss, "valid_loss": valid_loss})
 
             # Clear lists to track next epoch
             train_losses.clear()
@@ -437,6 +494,8 @@ class TrainModel:
             self.save_model_weights(epoch, valid_loss)
 
             self.scheduler.step()
+            # log the learning rate
+            wandb.log({"learning_rate": self.scheduler.get_last_lr()[0]})
 
         # Close and flush SummaryWriter
         self.writer.close()
@@ -449,12 +508,16 @@ class TrainModel:
 # ----------------------------------------------------- __M A I N__ ----------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
-    try:
-        tm = TrainModel()
+    for type_of_stream in [ "Contour", "LBP", "RGB", "Texture"]:
         try:
-            tm.training()
-        except torch.cuda.OutOfMemoryError:
-            logging.error('Detected OutOfMemoryError!')
-            torch.cuda.empty_cache()
-    except KeyboardInterrupt as kbe:
-        logging.error("Keyboard interrupt, program has been shut down!")
+            tm = TrainModel(type_of_stream=type_of_stream)
+            try:
+                tm.training()
+                pm = PredictStream(type_of_stream=type_of_stream)
+                pm.predict()
+                wandb.finish()
+            except torch.cuda.OutOfMemoryError:
+                logging.error('Detected OutOfMemoryError!')
+                torch.cuda.empty_cache()
+        except KeyboardInterrupt as kbe:
+            logging.error("Keyboard interrupt, program has been shut down!")
