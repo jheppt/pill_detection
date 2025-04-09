@@ -1,13 +1,10 @@
 import os
 import random
-import re
 import shutil
 
-from jinja2.compiler import operators
 from tqdm import tqdm
 
 from config.dataset_paths_selector import dataset_images_path_selector
-from dataset_operations.augmentation_utils import rotate_image_segmentation
 from utils.utils import file_reader
 
 

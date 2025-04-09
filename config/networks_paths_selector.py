@@ -16,7 +16,7 @@ def substream_paths() -> Dict:
     # ----------------------------------------------- C O N T O U R ------------------------------------------------
     for stream in ["Contour", "LBP", "RGB", "Texture"]:
         network_config[stream] = {}
-        for dataset in ["ogyeiv2", "synthetic", "nih"]:
+        for dataset in ["ogyeiv2", "synthetic", "nih", "cure", "hunyuan2"]:
             network_config[stream][dataset] = {}
             for network in ["EfficientNetV2"]:
                 network_config[stream][dataset][network] = {
@@ -62,7 +62,7 @@ def stream_network_backbone_paths(dataset_type, network_type) -> Dict:
     network_configs ={}
 
 
-    for dataset in ["ogyeiv2", "synthetic", "nih"]:
+    for dataset in ["ogyeiv2", "synthetic", "nih", "cure", "hunyuan2"]:
         network_configs[dataset] = {}
         for network in ["EfficientNetV2"]:
             network_configs[dataset][network] = {
@@ -114,7 +114,7 @@ def fusion_network_paths(dataset_type: str, network_type: str) -> Dict:
     """
 
     network_configs = {}
-    for dataset in ["ogyeiv2", "synthetic", "nih"]:
+    for dataset in ["ogyeiv2", "synthetic", "nih", "cure", "hunyuan2"]:
         network_configs[dataset] = {
             'EfficientNetV2MultiHeadAttention': {
                 'logs_folder': {

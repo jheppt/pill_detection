@@ -13,7 +13,7 @@ def dataset_images_path_selector(dataset_name: str):
     """
 
     path_to_images = {}
-    for dataset in ["bmd", "ogyeiv2", "synthetic", "nih"]:
+    for dataset in ["ogyeiv2", "synthetic", "nih", "cure", "hunyuan2"]:
         # -------------------------------------------------- O G Y E I -------------------------------------------------
         path_to_images[dataset] ={
             "customer": {
@@ -103,7 +103,7 @@ def dataset_images_path_selector(dataset_name: str):
                 "stream_images_pos_neg":
                     IMAGES_PATH.get_data_path(f"stream_images_{dataset}_pos_neg"),
                 'ref':
-                    IMAGES_PATH.get_data_path(f"ref_{dataset}_ref"),
+                    IMAGES_PATH.get_data_path(f"{dataset}_ref"),
                 'query':
                     IMAGES_PATH.get_data_path(f"{dataset}_query")
             },

@@ -1,23 +1,23 @@
 {
-  "dataset_type": "ogyeiv2",
-  "run_postfix": "13_01_2025_test",
+  "dataset_type": "hunyuan2",
+  "run_postfix": "06_02_2025_hp",
   "type_of_net": "EfficientNetV2",
-  "mining_type": "semihard",
+  "mining_type": "hard",
   "type_of_stream": "RGB",
   "type_of_loss_func": "hmtl",
   "fold": "fold1",
   "margin": 0.5,
   "upper_norm_limit": 0.5,
   "epochs": 20,
-  "batch_size": 128,
+  "batch_size": 64,
   "train_valid_ratio": 0.8,
-  "weight_decay": 0.00001,
+  "weight_decay": 1e-5,
   "step_size": 10,
   "gamma": 0.5,
   "load_ref_vector": false,
   "networks": {
     "EfficientNetV2": {
-      "learning_rate": 0.001,
+      "learning_rate": 1e-4,
       "image_size": 224
     }
   },

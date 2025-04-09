@@ -115,7 +115,7 @@ class ConfigFilePaths(_Const):
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 class Images(_Const):
     dirs_images = {}
-    for dataset in ["ogyeiv2", "synthetic", "nih"]:
+    for dataset in ["ogyeiv2", "synthetic", "nih", "cure", "hunyuan2"]:
         dirs_images.update({
         f"stream_images_{dataset}_anchor":
         f"images/{dataset}/stream_images/anchor",
@@ -154,7 +154,7 @@ class Images(_Const):
             f"images/{dataset}/test/query/texture",
 
         # ---------------------------------------------------- R E F ---------------------------------------------------
-        f"ref_{dataset}":
+        f"{dataset}_ref":
             f"images/{dataset}/test/ref",
         f"contour_stream_{dataset}_ref":
             f"images/{dataset}/test/ref/contour",
@@ -198,7 +198,7 @@ class Images(_Const):
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 class Data(_Const):
     dirs_data = {}
-    for dataset in ["ogyeiv2", "synthetic", "nih"]:
+    for dataset in ["ogyeiv2", "synthetic", "nih", "cure", "hunyuan2"]:
         dirs_data.update({
         # ------------------------------------- W E I G H T S   S T R E A M   N E T ------------------------------------
         # EfficientNetV2 - StreamNetwork
@@ -357,7 +357,7 @@ class NLPData(_Const):
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 class Datasets(_Const):
     dirs_dataset = {}
-    for dataset in ["ogyeiv2", "synthetic", "nih"]:
+    for dataset in ["ogyeiv2", "synthetic", "nih", "cure", "hunyuan2"]:
         dirs_dataset.update({
         # ------------------------------------------------- O G Y E I --------------------------------------------------
         # CUSTOMER

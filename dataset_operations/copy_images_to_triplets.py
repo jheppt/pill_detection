@@ -41,6 +41,7 @@ def copy_images(dataset, src_subset, dst_subset, stream):
             src_file = os.path.join(src_class_path, file_name)
             dst_file = os.path.join(dst_class_path, file_name)
 
+
             shutil.copy(src_file, dst_file)
 
 
@@ -50,7 +51,7 @@ def main():
         json_schema_filename=json_config_selector("stream_images").get("schema"),
     )
 
-    src_subsets = ["customer", "reference"]
+    src_subsets = ["reference", "customer"]
     dst_subsets = {
         "customer": ["stream_images_pos_neg", "query"],
         "reference": ["stream_images_anchor", "ref"]

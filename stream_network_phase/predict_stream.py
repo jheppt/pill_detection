@@ -6,6 +6,7 @@ Date: Apr 12, 2023
 
 Description: This code implements the inference for the stream network phase.
 """
+import random
 
 import colorama
 import logging
@@ -32,8 +33,10 @@ class PredictStream:
     # ------------------------------------------------------------------------------------------------------------------
     # --------------------------------------------------- __I N I T__ --------------------------------------------------
     # ------------------------------------------------------------------------------------------------------------------
-    def __init__(self,type_of_stream:str, dataset_type:str = "ogyeiv2", model_type:str ="ogyeiv2") -> None:
+    def __init__(self, type_of_stream: str, dataset_type: str = None, model_type: str = None,
+                 amount_of_classes:int=None, amount_of_images_per_class:int=None) -> None:
         # Setup logger
+
         setup_logger()
 
         # Load config
@@ -45,6 +48,9 @@ class PredictStream:
         )
         # Set up tqdm colours
         colorama.init()
+
+        self.amount_of_classes = amount_of_classes
+        self.amount_of_images_per_class = amount_of_images_per_class
 
         # Create time stamp
         self.timestamp = create_timestamp()
@@ -60,8 +66,8 @@ class PredictStream:
         self.confidence_percentages = None
 
         # Load configs
-        self.model_type = model_type
-        self.dataset_type = dataset_type  #self.cfg.get("dataset_type")
+        self.model_type = self.cfg.get("dataset_type") if model_type is None else model_type
+        self.dataset_type = self.cfg.get("dataset_type") if dataset_type is None else dataset_type
         self.network_type = self.cfg.get("type_of_net")
 
         self.main_network_config = stream_network_backbone_paths(
@@ -150,6 +156,7 @@ class PredictStream:
         latest_pt_file = find_latest_file_in_latest_directory(
             path=weight_files_path
         )
+        wandb.config.update({"model_weights_dir": latest_pt_file}, allow_val_change=True)
 
         network_stream = StreamNetworkFactory.create_network(self.network_type, substream_network_cfg)
 
@@ -207,6 +214,12 @@ class PredictStream:
         color = colorama.Fore.BLUE if operation == "query" else colorama.Fore.RED
         medicine_classes = os.listdir(images_dir)
 
+        # sort the classes and take the first amount_of_classes and amount_of_images_per_class
+        if self.amount_of_classes is not None:
+            medicine_classes = medicine_classes[:self.amount_of_classes]
+        else:
+            wandb.config.update(d={"amount_of_classes": len(medicine_classes)}, allow_val_change=True)
+
         vectors = {}
         labels = {}
         images_tensors= {}
@@ -222,7 +235,14 @@ class PredictStream:
             labels[image_name] = []
             images_tensors[image_name] = []
 
+            # random shuffle the images
+            random.shuffle(image_paths)
+
+
+
             for idx, image_path in enumerate(image_paths):
+                if self.amount_of_images_per_class is not None and idx >= self.amount_of_images_per_class:
+                    break
                 # Load and preprocess the image for the selected stream
                 image = Image.open(os.path.join(images_dir, image_name, image_path))
                 if self.type_of_stream == "RGB":
@@ -422,16 +442,34 @@ class PredictStream:
         plot_ref_query_images(query_lables, predicted_medicines, query_image_tensors, reference_image_tensors, plot_dir, max_correct=0, max_incorrect=100, save_images=False)
 
 if __name__ == '__main__':
-    type_of_stream = "Contour" # one of ["Contour", "LBP", "RGB", "Texture"]
-    model_type = "synthetic" # one of ["ogyeiv2", "synthetic"]
-    dataset_type = "synthetic"
-    project = "stream_network_predict_test"
-    name = f"{type_of_stream}_{model_type}_on_{dataset_type}"
+    list_of_datasets = ["ogyeiv2", "nih", "cure"]
+    list_of_models = ["ogyeiv2", "nih", "cure", "synthetic", "hunyuan2"]
+
+    for type_of_stream in ["Contour", "LBP", "RGB", "Texture"]:
+        for model_type in list_of_models:
+            for dataset_type in list_of_datasets:
+                project = "stream_network_predict_25classes"
+                name = f"{type_of_stream}_{model_type}_on_{dataset_type}"
+                amount_of_classes = 25
+                amount_of_images_per_class = 2
+
+                wandb.init(project=project,
+                           name=name,
+                           dir="../wandb_logging",
+                           group=type_of_stream,
+                           tags=[type_of_stream, model_type,f"on_{dataset_type}"],
+                           allow_val_change=True,
+                           config = {
+                               "type_of_stream": type_of_stream,
+                               "model_type": model_type,
+                               "dataset_type": dataset_type,
+                               "amount_of_classes": amount_of_classes,
+                               "amount_of_images_per_class": amount_of_images_per_class,
+                               "model_weights_dir": "",
+                               "same_data_family": model_type == dataset_type
+                           })
 
 
-
-
-    wandb.init(project="stream_network_predict_test", name=name)
-
-    stream = PredictStream(type_of_stream=type_of_stream, dataset_type=dataset_type, model_type=model_type)
-    stream.predict()
+                stream = PredictStream(type_of_stream=type_of_stream, dataset_type=dataset_type, model_type=model_type, amount_of_classes=amount_of_classes, amount_of_images_per_class=amount_of_images_per_class)
+                stream.predict()
+                wandb.finish()

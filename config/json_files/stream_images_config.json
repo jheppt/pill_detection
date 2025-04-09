@@ -1,10 +1,13 @@
 {
-  "dataset_type": "synthetic",
-  "operation": "reference",
+  "dataset_type": "hunyuan2",
+  "operation": "customer",
+  "rotate_image": true,
+  "less_classes": true,
+  "image_size": 224,
   "threshold_area": 100,
   "kernel_median_contour": 7,
   "canny_low_thr": 10,
   "canny_high_thr": 30,
   "kernel_gaussian_texture": 7,
-  "max_worker": 6
+  "max_worker": 16
 }

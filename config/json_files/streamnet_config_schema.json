@@ -5,7 +5,7 @@
   "properties": {
     "dataset_type": {
       "type": "string",
-      "enum": ["ogyeiv2","synthetic"]
+      "enum": ["ogyeiv2", "synthetic", "nih", "cure", "hunyuan2"]
     },
     "run_postfix": {
       "type": "string"

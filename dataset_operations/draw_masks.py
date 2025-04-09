@@ -14,9 +14,10 @@ import logging
 import numpy as np
 import os
 
-from PIL import Image, ImageDraw
-from tqdm import tqdm
-from typing import Tuple, List, Dict
+from numpy import ndarray, dtype
+from typing import Tuple, List, Dict, Any
+
+from tqdm.auto import tqdm
 
 from config.dataset_paths_selector import dataset_images_path_selector
 from config.json_config import json_config_selector
@@ -70,7 +71,7 @@ def path_selector(operation: str) -> dict:
 # ----------------------------------------------------------------------------------------------------------------------
 # ----------------------------------------------- L O A D   F I L E S --------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
-def load_files(images_dir: str, labels_dir: str) -> Tuple[List[str], List[str]]:
+def load_files(images_dir: str, labels_dir: str) -> List[str]:
     """
     This function loads the image and label files from two directories: train_dir and labels_dir.
     Args:
@@ -88,66 +89,67 @@ def load_files(images_dir: str, labels_dir: str) -> Tuple[List[str], List[str]]:
         raise ValueError(f"Invalid path: {labels_dir} is not a directory")
 
     image_files = file_reader(images_dir, "jpg")
-    text_files = file_reader(labels_dir, "txt")
 
     if not image_files:
         raise ValueError(f"No image files found in {images_dir}")
 
-    if not text_files:
-        raise ValueError(f"No text files found in {labels_dir}")
+    for img in image_files:
+        # check if image has corresponding label file in labels_dir
+        if not os.path.exists(os.path.join(labels_dir, os.path.basename(img).replace(".jpg", ".txt"))):
+            image_files.remove(img)
 
-    assert len(image_files) == len(text_files)
 
-    return image_files, text_files
 
+    return image_files
+
+def convert_yolo_label_to_mask(original_image_file_path, label_file_path):
+    original_image = cv2.imread(original_image_file_path, cv2.IMREAD_GRAYSCALE)
+    h, w = original_image.shape
+    mask = np.zeros((h, w), np.uint8)
+
+    with open(label_file_path, 'r') as f:
+        for line in map(lambda x: x.rsplit(), f.readlines()):
+            x_points = list(map(lambda x: int(float(x) * w), line[1::2]))
+            y_points = list(map(lambda y: int(float(y) * h), line[2::2]))
+            pts = np.array(list(zip(x_points, y_points)),np.int32).reshape((-1, 1, 2))
+            # cv2.polylines(mask, [pts], True, 255, 1) # Not filling
+            cv2.fillPoly(img=mask, pts=[pts], color=[255]) # Filling
+    return mask
 
 # ----------------------------------------------------------------------------------------------------------------------
 # --------------------------------------------- P R O C E S S   D A T A ------------------------------------------------
 # ----------------------------------------------------------------------------------------------------------------------
-def process_data(img_files: str, txt_files: str):
+def process_data(img_file: str, txt_path: str)-> tuple[None, None] | tuple[ndarray[tuple[int, ...], dtype[Any]], str]:
     """
     Given the file paths to an image file and a corresponding text file with object coordinates in YOLO format,
     loads the image, extracts the object coordinates, and creates a binary mask indicating where the object is.
 
     Args:
-        img_files: A string specifying the path to an image file.
-        txt_files: A string specifying the path to a text file with YOLO object coordinates.
+        img_file: A string specifying the path to an image file.
+        txt_path: A string specifying the path to a text file with YOLO object coordinates.
 
     Returns:
         A tuple of (img, mask), where img is a PIL Image object representing the loaded image,
         and mask is a numpy array representing a binary mask indicating the object location.
         Returns (None, None) if either file path is invalid.
     """
+    original_image = cv2.imread(img_file, cv2.IMREAD_GRAYSCALE)
+    h, w = original_image.shape
+    mask = np.zeros((h, w), np.uint8)
 
-    try:
-        img = Image.open(img_files)
-        img_width, img_height = img.size
-        img.close()
-    except FileNotFoundError:
-        logging.error(f"{img_files} is not a valid image file.")
+    label_path = os.path.join(txt_path, os.path.basename(img_file).replace(".jpg", ".txt"))
+    if not os.path.exists(label_path):
         return None, None
 
-    try:
-        with open(txt_files, "r") as file:
-            line = file.readline().strip()
-            yolo_coords = line.split()[1:]
-            yolo_coords = [float(x.strip('\'')) for x in yolo_coords]
-    except FileNotFoundError:
-        logging.error(f"{txt_files} is not a valid text file.")
-        return None, None
+    with open(label_path, 'r') as f:
+        for line in map(lambda x: x.rsplit(), f.readlines()):
+            x_points = list(map(lambda x: int(float(x) * w), line[1::2]))
+            y_points = list(map(lambda y: int(float(y) * h), line[2::2]))
+            pts = np.array(list(zip(x_points, y_points)), np.int32).reshape((-1, 1, 2))
+            # cv2.polylines(mask, [pts], True, 255, 1) # Not filling
+            mask = cv2.fillPoly(img=mask, pts=[pts], color=(255, 0, 0))
 
-    coords = []
-    for i, coord in enumerate(yolo_coords):
-        if i % 2 == 0:
-            coords.append(int(coord * img_width))
-        else:
-            coords.append(int(coord * img_height))
-
-    mask = Image.new('1', (img_width, img_height), 0)
-    ImageDraw.Draw(mask).polygon(xy=coords, outline=1, fill=1)
-    mask = np.array(mask)
-
-    return mask
+    return mask , img_file
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -169,8 +171,7 @@ def save_masks(mask: np.ndarray, img_file: str, path_to_files: Dict[str, str]) -
     name = os.path.basename(img_file)
     save_path = (os.path.join(path_to_files.get("masks"), name))
     save_path = save_path.replace(".jpg", ".png")
-    mask_pil = mask.astype(np.uint8) * 255
-    cv2.imwrite(save_path, mask_pil)
+    cv2.imwrite(save_path, mask)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -187,7 +188,8 @@ def main(operation: str = "train", batch_size: int = 10) -> None:
     setup_logger()
     path_to_files = path_selector(operation)
 
-    img_files, txt_files = load_files(images_dir=path_to_files.get("images"), labels_dir=path_to_files.get("labels"))
+    img_files = load_files(images_dir=path_to_files.get("images"), labels_dir=path_to_files.get("labels"))
+    label_dir = path_to_files.get("labels")
 
     total_files = len(img_files)
     num_batches = (total_files + batch_size - 1) // batch_size
@@ -197,20 +199,20 @@ def main(operation: str = "train", batch_size: int = 10) -> None:
             start_idx = i * batch_size
             end_idx = min((i + 1) * batch_size, total_files)
             batch_img_files = img_files[start_idx:end_idx]
-            batch_txt_files = txt_files[start_idx:end_idx]
 
             futures = []
-            for img_file, txt_file in zip(batch_img_files, batch_txt_files):
-                futures.append(executor.submit(process_data, img_file, txt_file))
+            for img_file in batch_img_files:
+                futures.append(executor.submit(process_data, img_file, label_dir))
 
-            for future, (img_file, _) in tqdm(zip(futures, zip(batch_img_files, batch_txt_files)),
-                                              total=len(batch_img_files),
-                                              desc=f"Processing batch {i+1}/{num_batches}"):
+            for future in tqdm(futures,total=len(batch_img_files),
+                                      desc=f"Processing batch {i+1}/{num_batches}"):
+
                 try:
-                    mask = future.result()
-                    save_masks(mask=mask, img_file=img_file, path_to_files=path_to_files)
+                    mask, image_path = future.result()
+                    if mask is not None:
+                        save_masks(mask=mask, img_file=image_path, path_to_files=path_to_files)
                 except Exception as e:
-                    logging.error(f"Error processing {img_file}: {e}")
+                    logging.error(f"Error processing {image_path}: {e}")
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -218,8 +220,8 @@ def main(operation: str = "train", batch_size: int = 10) -> None:
 # ----------------------------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
     try:
-        operations = ["reference", "customer"]
+        operations = [ "customer","reference"] #"reference",
         for op in operations:
-            main(operation=op)
+            main(operation=op, batch_size=500)
     except KeyboardInterrupt as kie:
         logging.error(f"The following error has occurred: {kie}")

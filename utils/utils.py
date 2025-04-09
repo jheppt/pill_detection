@@ -418,7 +418,11 @@ def plot_ref_query_images(query_lables: List[str], predicted_medicines: List[str
             incorrect_count += 1
 
             # Collect incorrect classifications for WandB
-            ref_tensors = reference_image_tensors[query_label]
+            if query_label in reference_image_tensors:
+                ref_tensors = reference_image_tensors[query_label]
+            else:
+                logging.warning(f"Query label {query_label} not found in reference_image_tensors.")
+                continue
             ref_images = [wandb.Image(tensor, caption=f"Ref: {query_label}") for tensor in ref_tensors]
             query_image = wandb.Image(query_image_tensors[query_label][query_image_count], caption=f"Query: {query_label}")
             predicted_medicine_image = wandb.Image(reference_image_tensors[predicted_medicine][0], caption=f"Predicted: {predicted_medicine}")

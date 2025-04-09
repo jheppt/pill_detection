@@ -31,76 +31,24 @@ def rename_files(images_dir: str, labels_dir: str) -> None:
     """
 
     images = sorted(glob(images_dir + "/*.jpg"))
-    text = sorted(glob(labels_dir + "/*.txt"))
 
-    existing_files = os.listdir(images_dir)
 
-    for idx, (img, txt) in enumerate(zip(images, text)):
+    for idx, img in enumerate(images):
         image_file_name = os.path.basename(img)
-        image_file_name = image_file_name.replace("_png", ".png")
-        image_file_name = '_'.join(image_file_name.split('.')[:2])
-        image_file_name = image_file_name.replace("_png", ".png")
+        # rename filename to 0_bottom_22_jpg.rf.e0644f8a66e24d7a207341fb141f32a5.jpg -> 0_bottom_22_jpg
+        new_image_file_name = image_file_name.split(".")[0].replace("_jpg", ".jpg")
+        #new_image_file_name = new_image_file_name.replace("bottom_", "")
+        #new_image_file_name = new_image_file_name.replace("top", "")
 
-        txt_file_name = os.path.basename(txt)
-        txt_file_name = txt_file_name.replace("_png", ".png")
-        txt_file_name = '_'.join(txt_file_name.split('.')[:2])
-        txt_file_name = txt_file_name.replace("_png", ".txt")
+        # rename img file to new name
+        os.rename(img, os.path.join(images_dir, new_image_file_name))
 
-        # Check if the image file name already exists
-        original_file_name = image_file_name
-        index = 0
-        while image_file_name in existing_files:
-            index += 1
-            image_file_name = "{}_{:d}.png".format(original_file_name.rsplit('_', 1)[0], index)
-
-        existing_files.append(image_file_name)
-
-        # Check if the text file name already exists
-        original_file_name = txt_file_name
-        index = 0
-        while txt_file_name in existing_files:
-            index += 1
-            txt_file_name = "{}_{:d}.txt".format(original_file_name.rsplit('_', 1)[0], index)
-
-        existing_files.append(txt_file_name)
-
-        # Rename the corresponding text file
-        os.rename(img, os.path.join(images_dir, image_file_name))
-        os.rename(txt, os.path.join(labels_dir, txt_file_name))
-
-        # Print the updated file names
-        print("Image file:", image_file_name)
-        print("Text file:", txt_file_name)
+        # rename label file to new name
+        label_file_name = image_file_name.replace(".jpg", ".txt")
+        new_label_file_name = new_image_file_name.replace(".jpg", ".txt")
+        os.rename(os.path.join(labels_dir, label_file_name), os.path.join(labels_dir, new_label_file_name))
 
 
-def convert_image_to_png(image_path: str) -> None:
-    """
-    Converts a single image file to PNG format.
-
-    :param image_path: Path to the image file.
-    """
-
-    img = Image.open(image_path)
-    img = img.convert("RGB")
-    img.save(image_path, 'PNG')
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# -------------------------------------- C O N V E R T   I M A G E S   T O   P N G -------------------------------------
-# ----------------------------------------------------------------------------------------------------------------------
-def convert_images_to_png(directory: str) -> None:
-    """
-    Convert all image files in the specified directory to PNG format using ThreadPoolExecutor.
-
-    :param directory: Path to the image files.
-    :return: None
-    """
-
-    image_files = [os.path.join(directory, file_name) for file_name in os.listdir(directory)
-                   if file_name.lower().endswith('.png')]
-
-    with ThreadPoolExecutor() as executor:
-        list(tqdm(executor.map(convert_image_to_png, image_files), total=len(image_files), desc="Processing images"))
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -112,11 +60,10 @@ def main() -> None:
     :return: None
     """
 
-    images_dir = DATASET_PATH.get_data_path("")
-    labels_dir = DATASET_PATH.get_data_path("")
+    images_dir = "/home/ubuntu/dev/pill_detection/datasets/cure/unsplitted/images"
+    labels_dir = "/home/ubuntu/dev/pill_detection/datasets/cure/unsplitted/labels"
 
     rename_files(images_dir, labels_dir)
-    convert_images_to_png(images_dir)
 
 
 # ----------------------------------------------------------------------------------------------------------------------

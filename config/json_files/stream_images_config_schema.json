@@ -5,7 +5,7 @@
   "properties": {
     "dataset_type": {
       "type": "string",
-      "enum": ["ogyeiv2", "synthetic"],
+      "enum": ["ogyeiv2", "synthetic", "nih", "cure", "hunyuan2"],
       "description": "The type of dataset being used."
     },
     "operation": {
@@ -32,6 +32,14 @@
     "kernel_gaussian_texture": {
       "type": "integer",
       "description": "Kernel size for the Gaussian filter applied to textures."
+    },
+    "rotate_image": {
+      "type": "boolean",
+      "description": "Whether to rotate the image or not."
+    },
+    "image_size": {
+      "type": "integer",
+      "description": "Size of the image. Typically set to the same value as the image size in the Train config."
     },
     "max_worker": {
       "type": "integer",

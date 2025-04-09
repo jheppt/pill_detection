@@ -39,6 +39,7 @@ from utils.utils import (create_dataset, create_timestamp, get_embedded_text_mat
                          use_gpu_if_available, setup_logger, load_config_json)
 
 
+
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # ++++++++++++++++++++++++++++++++++++++++++++++++ T R A I N   M O D E L +++++++++++++++++++++++++++++++++++++++++++++++
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -82,7 +83,7 @@ class TrainModel:
         # Loss type
         loss_type = self.cfg.get("type_of_loss_func")
 
-        wandb.init(config = self.cfg, dir=os.path.join(parent_dir, "wandb_logging"), name=f"{self.dataset_type}_{self.stream_type}_{self.run_postfix}")
+        wandb.init(config = self.cfg, dir=os.path.join(parent_dir, "wandb_logging"), name=f"{self.dataset_type}_{self.stream_type}_{self.run_postfix}",mode="online" )
 
         # Load model and upload it to the GPU
         self.model = StreamNetworkFactory.create_network(self.type_of_net, substream_network_cfg)
@@ -157,16 +158,16 @@ class TrainModel:
         self.optimizer = (
             torch.optim.Adam(
                 self.model.parameters(),
+                weight_decay=self.cfg.get("weight_decay"),
                 lr=backbone_network_cfg.get("learning_rate")
             )
         )
 
         # LR scheduler
-        self.scheduler = (
-            CosineAnnealingLR(
-                optimizer=self.optimizer,
-                T_max=self.cfg.get("epochs"),
-            )
+        self.scheduler = CosineAnnealingLR(
+            optimizer=self.optimizer,
+            T_max=self.cfg.get("epochs"),  # Gesamtzahl der Epochen
+            eta_min=1e-6,  # Minimale Lernrate
         )
 
         # Tensorboard
@@ -513,7 +514,7 @@ if __name__ == "__main__":
             tm = TrainModel(type_of_stream=type_of_stream)
             try:
                 tm.training()
-                pm = PredictStream(type_of_stream=type_of_stream)
+                pm = PredictStream(type_of_stream=type_of_stream, amount_of_classes=None, amount_of_images_per_class=None)
                 pm.predict()
                 wandb.finish()
             except torch.cuda.OutOfMemoryError:
