@@ -272,7 +272,7 @@ class PredictStream:
         """
         This method measures the similarity and distance between the query_vectors and all reference_vectors using
         Euclidean distance. It returns the predicted medicine labels based on the closest reference vector, and
-        calculates top-1 and top-5 accuracy.
+        calculates top-1, top-5 accuracy, and Mean Reciprocal Rank (MRR).
 
         Args:
             reference_vectors: a dictionary of embedded vectors for the reference set.
@@ -284,6 +284,7 @@ class PredictStream:
             most_similar_indices_euc_dist: List of indices of the most similar reference vectors.
             accuracy_top1: The top-1 accuracy.
             accuracy_top5: The top-5 accuracy.
+            mrr: The Mean Reciprocal Rank.
         """
 
         logging.info("Comparing query and reference vectors")
@@ -291,6 +292,7 @@ class PredictStream:
         similarity_scores_euc_dist = []
         predicted_medicine_euc_dist = []
         most_similar_indices_euc_dist = []
+        sum_reciprocal_ranks = 0.0  # Initialize sum for MRR calculation
 
         # Flatten all reference vectors into one tensor and track labels
         all_reference_vectors = []
@@ -305,7 +307,8 @@ class PredictStream:
 
         total_queries = 0
 
-        for image_name, query_vector_list in tqdm(query_vectors.items(), desc="Comparing process", position=0, leave=True):
+        for image_name, query_vector_list in tqdm(query_vectors.items(), desc="Comparing process", position=0,
+                                                  leave=True):
 
             total_queries += len(query_vector_list)
             query_vectors_tensor = torch.stack(
@@ -335,12 +338,22 @@ class PredictStream:
                 if image_name in top5_predicted_medicines:
                     self.num_correct_top5 += 1
 
+                # Calculate reciprocal rank for MRR
+                sorted_indices = torch.argsort(scores_euclidean_distance).tolist()
+                reciprocal_rank = 0.0
+                for rank, idx in enumerate(sorted_indices, 1):  # Ranks start at 1
+                    if all_reference_labels[idx] == image_name:
+                        reciprocal_rank = 1.0 / rank
+                        break
+                sum_reciprocal_ranks += reciprocal_rank
+
                 # Track the similarity scores for analysis if needed
                 similarity_scores_euc_dist.append(scores_euclidean_distance.cpu().tolist())
 
-        # Calculate accuracies
-        self.accuracy_top1 = self.num_correct_top1 / total_queries
-        self.accuracy_top5 = self.num_correct_top5 / total_queries
+        # Calculate accuracies and MRR
+        self.accuracy_top1 = self.num_correct_top1 / total_queries if total_queries > 0 else 0.0
+        self.accuracy_top5 = self.num_correct_top5 / total_queries if total_queries > 0 else 0.0
+        self.mrr = sum_reciprocal_ranks / total_queries if total_queries > 0 else 0.0
 
         return predicted_medicine_euc_dist
 
@@ -381,14 +394,24 @@ class PredictStream:
             ["Miss predicted top 1:", f'{len(ground_truth_labels) - self.num_correct_top1}'],
             ["Miss predicted top 5:", f'{len(ground_truth_labels) - self.num_correct_top5}'],
             ['Accuracy (Top-1):', f'{self.accuracy_top1:.4%}'],
-            ['Accuracy (Top-5):', f'{self.accuracy_top5:.4%}']
+            ['Accuracy (Top-5):', f'{self.accuracy_top5:.4%}'],
+            ['Mean Reciprocal Rank (MRR):', f'{self.mrr:.4f}'],
+            ['Total queries:', f'{len(ground_truth_labels)}'],
+            ['Total classes:', f'{self.amount_of_classes}'],
+            ['Total images per class:', f'{self.amount_of_images_per_class}'],
+            ['Type of stream:', self.type_of_stream],
+            ['Dataset type:', self.dataset_type],
+            ['Model type:', self.model_type],
+            ['Network type:', self.network_type]
         ]
         wandb.log({"Accuracy (Top-1)": self.accuracy_top1,
                    "Accuracy (Top-5)": self.accuracy_top5,
                    "Miss predicted top 1": len(ground_truth_labels) - self.num_correct_top1,
                    "Miss predicted top 5": len(ground_truth_labels) - self.num_correct_top5,
                    "Correctly predicted (Top-1)": self.num_correct_top1,
-                   "Correctly predicted (Top-5)": self.num_correct_top5})
+                   "Correctly predicted (Top-5)": self.num_correct_top5,
+                   "Mean Reciprocal Rank (MRR)": self.mrr,
+                   }),
 
         df_stat = pd.DataFrame(df_stat, columns=['Metric', 'Value'])
 
@@ -448,10 +471,10 @@ if __name__ == '__main__':
     for type_of_stream in ["Contour", "LBP", "RGB", "Texture"]:
         for model_type in list_of_models:
             for dataset_type in list_of_datasets:
-                project = "stream_network_predict_25classes"
+                project = "stream_network_predict_synthetic"
                 name = f"{type_of_stream}_{model_type}_on_{dataset_type}"
                 amount_of_classes = 25
-                amount_of_images_per_class = 2
+                amount_of_images_per_class = 5
 
                 wandb.init(project=project,
                            name=name,
